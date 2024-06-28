@@ -151,7 +151,7 @@ Track and use polydisperse particle radii for surface-surface distance (h_ij) ca
         * [x] PotentialPairAlchemical.h : **radcontact, typeIDs**
         * [x] PotentialPairDPDThermo.h : **radcontact, diameter, typeIDs**
 	* [x] TwoStepBD.cc : **alpha**
-        * [x] TwoStepLangevin.cc : **alpha**
+ 	* [x] TwoStepLangevin.cc : **alpha**
 	* [x] TwoStepLangevinBase.cc : **alpha**
 	* [x] TwoStepLangevinBase.h : **alpha**
 
