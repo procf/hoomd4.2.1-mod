@@ -122,6 +122,17 @@ class EvaluatorPairMorse
     */
     DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
         {
+
+        //~ Add radsum from passed diameters [RHEOINF] 
+        Scalar radsum = 0.5 * (diameter_i + diameter_j); 
+        //~ Scale attraction strength by particle size is scaled_D0 is true
+        //~ NOTE: changing the value of a parameter passed from Python is bad form, but it does seem to work...
+        if (scaled_D0)
+          {
+          D0 = D0 * (0.5*radsum);
+          }   
+        //~ 
+
         // compute the force divided by r in force_divr
         if (rsq < rcutsq)
             {
@@ -144,6 +155,7 @@ class EvaluatorPairMorse
 
             pair_eng = D0 * Exp_factor * (Exp_factor - Scalar(2.0));
             //~ force_divr = Scalar(2.0) * D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) / r; //~ move this into overlap check [PROCF2023]
+            //std::cout << D0 << "," << Exp_factor << "," << pair_eng << std::endl;            
 
             if (energy_shift)
                 {
