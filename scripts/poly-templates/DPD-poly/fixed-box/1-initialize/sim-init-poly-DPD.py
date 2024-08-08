@@ -101,6 +101,7 @@ else:
       diameter.extend([2.0*R_C1]*N_C1)
   # solvent particle mass and diameters
   mass.extend([m_S]*N_Solvents)
+  snapshot.particles.mass = mass
   diameter.extend([2.0*R_S]*N_Solvents)
   snapshot.particles.diameter = diameter
 

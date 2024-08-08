@@ -92,6 +92,7 @@ else:
     elif R_C1 == 0:
       mass.extend([m_C1]*N_C1)
       diameter.extend([2.0*R_C1]*N_C1)
+  snapshot.particles.mass = mass
   snapshot.particles.diameter = diameter
   # randomly distribute all the particles in 3D space
   pos_arr = numpy.zeros((N_total,3))
