@@ -48,7 +48,8 @@ Contact Force, Lubrication Force, track virial components (Nabi and Deepak)
 
 
 ## Shear Rate 
-Adding shear rate for regular particles (does not include rigid bodies) (Deepak)
+Adding shear rate for regular particles (does not include rigid bodies) (Deepak)<br>
+NOTE: we do not remove the streamline velocity from the kinetic component of the stress tensor (ComputeForces.cc). This is generally okay because above a Peclet Number of 1 Brownian forces do not typically matter so much for the behavior of the system (and our results are realistic, which supports this choice), but in the future you may want to include Brownian force in the integrator for shear and remove streamline velocity from x-velocity used in the kinetic component
 - **flow velocity** add the flow velocity for calculating shear rate
 - **y-boundary velocity** update velocity when wrapping particles across the Y boundary (gradient direction)
 - **shear rate** add the shear rate variable
