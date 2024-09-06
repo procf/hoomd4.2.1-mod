@@ -154,7 +154,7 @@ class EvaluatorPairMorse
             //~ 
 
             pair_eng = D0 * Exp_factor * (Exp_factor - Scalar(2.0));
-            //~ force_divr = Scalar(2.0) * D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) / r; //~ move this into overlap check [PROCF2023]
+            //~ force_divr = Scalar(2.0) * D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) / r; //~ move this into overlap check [RHEOINF]
             //std::cout << D0 << "," << Exp_factor << "," << pair_eng << std::endl;            
 
             if (energy_shift)
