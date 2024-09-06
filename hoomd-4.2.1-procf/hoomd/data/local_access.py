@@ -167,7 +167,8 @@ class ParticleLocalAccessBase(_LocalAccess):
         'net_force': 'getNetForce',
         'net_torque': 'getNetTorque',
         'net_virial': 'getNetVirial',
-        'net_energy': 'getNetEnergy'
+        'net_energy': 'getNetEnergy',
+        'particle_n_list': 'getParticleNList'
     }
 
     def __init__(self, state):

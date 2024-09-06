@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
-
 #pragma once
 
 #include <bitset>
@@ -312,9 +310,6 @@ void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::compute
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-    //~ access particle diameter [RHEOINF] 
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-    //~
 
     // force arrays
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
@@ -375,10 +370,6 @@ void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::compute
             unsigned int typej = __scalar_as_int(h_pos.data[j].w);
             assert(typej < m_pdata->getNTypes());
 
-            //~ store the typeIDs of the current pair [RHEOINF]
-            unsigned int pair_typeids[2] = {typei, typej};
-            //~
-
             // access charge (if needed)
             Scalar qj = Scalar(0.0);
             if (evaluator::needsCharge())
@@ -389,10 +380,6 @@ void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::compute
 
             // calculate r_ij squared (FLOPS: 5)
             Scalar rsq = dot(dx, dx);
-
-            //~ calculate the center-center distance equal to particle-particle contact (AKA r0) [RHEOINF]
-            Scalar radcontact = Scalar(0.5) * (h_diameter.data[i] + h_diameter.data[j]);
-            //~
 
             // get parameters for this type pair
             unsigned int typpair_idx = m_typpair_idx(typei, typej);
@@ -417,7 +404,7 @@ void PotentialPairAlchemical<evaluator, extra_pkg, alpha_particle_type>::compute
             // compute the force and potential energy
             Scalar force_divr = Scalar(0.0);
             Scalar pair_eng = Scalar(0.0);
-            evaluator eval(rsq, radcontact, pair_typeids, rcutsq, param); //~ add radcontact, pair_typeIDs [RHEOINF]
+            evaluator eval(rsq, rcutsq, param);
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 

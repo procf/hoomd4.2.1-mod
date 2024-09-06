@@ -1,14 +1,11 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
-
 #pragma once
 
 #include <cstdint>
 #include <pybind11/pybind11.h>
 #include <utility>
-#include <iostream> //~ add iostream [RHEOINF]
 
 #include "HOOMDMath.h"
 
@@ -595,152 +592,6 @@ class PYBIND11_EXPORT VariantPower : public Variant
     /// internal end to work with negative values
     double m_inv_end;
     };
-
-//~ add Oscillatory Shear
-class PYBIND11_EXPORT VariantOscillatory : public Variant
-    {
-    public:
-    VariantOscillatory(Scalar A, uint64_t t_start, uint64_t t_ramp)
-        {
-        setA(A);
-        setTStart(t_start);
-        setTRamp(t_ramp);
-        }
-    Scalar operator()(uint64_t timestep)
-        {
-        if (timestep < m_t_start)
-            {
-            return 0;
-            }
-        else if (timestep < m_t_start + m_t_ramp)
-            {
-            double s = double(timestep - m_t_start) / double(m_t_ramp);
-            return m_A * sin(2.0*3.141593*s);
-            }
-        else
-            {
-            return 0;
-            }
-        }
-    void setA(Scalar A)
-        {
-        m_A = A;
-        }
-    Scalar getA() const
-        {
-        return m_A;
-        }
-    void setTStart(uint64_t t_start)
-        {
-        m_t_start = t_start;
-        }
-    uint64_t getTStart() const
-        {
-        return m_t_start;
-        }
-    void setTRamp(uint64_t t_ramp)
-        {
-        if (t_ramp >= 9007199254740992ull)
-            {
-            throw std::invalid_argument("t_ramp must be less than 2**53");
-            }
-        m_t_ramp = t_ramp;
-        }
-    uint64_t getTRamp() const
-        {
-        return m_t_ramp;
-        }
-    Scalar min()
-        {
-        return -m_A;
-        }
-    Scalar max()
-        {
-        return m_A;
-        }
-    protected:
-    Scalar m_A;
-    uint64_t m_t_start;
-    uint64_t m_t_ramp;
-    };
-//~
-
-//~ Add Sinusoidal Oscillation
-class PYBIND11_EXPORT VariantSinusoid : public Variant
-    {
-    public:
-    VariantSinusoid(Scalar value, uint64_t t_start, Scalar omega)
-        {
-        setValue(value);
-        setTStart(t_start);
-        setOmega(omega);
-        }
-
-    Scalar operator()(uint64_t timestep)
-        {
-        return m_value*sin(m_omega*Scalar(timestep - m_t_start));
-        }
-
-    void setValue(Scalar value){m_value = value;}
-
-    Scalar getValue() const {return m_value;}
-
-    void setTStart(uint64_t t_start) {m_t_start = t_start;}
-
-    uint64_t getTStart() const {return m_t_start;}
-
-    void setOmega(Scalar omega) {m_omega = omega;}
-
-    Scalar getOmega() const {return m_omega;}
-
-    Scalar min() {return -m_value;}
-
-    Scalar max() {return m_value;}
-    protected:
-    Scalar m_value;
-    uint64_t m_t_start;
-    Scalar m_omega;
-    };
-//~
-
-//~ Add Cosinusoidal Oscillation
-class PYBIND11_EXPORT VariantCosinusoid : public Variant
-    {
-    public:
-    VariantCosinusoid(Scalar value, uint64_t t_start, Scalar omega)
-        {
-        setValue(value);
-        setTStart(t_start);
-        setOmega(omega);
-        }
-
-    Scalar operator()(uint64_t timestep)
-        {
-        return m_value*cos(m_omega*Scalar(timestep - m_t_start));
-        }
-
-    void setValue(Scalar value){m_value = value;}
-
-    Scalar getValue() const {return m_value;}
-
-    void setTStart(uint64_t t_start) {m_t_start = t_start;}
-
-    uint64_t getTStart() const {return m_t_start;}
-
-    void setOmega(Scalar omega) {m_omega = omega;}
-
-    Scalar getOmega() const {return m_omega;}
-
-    Scalar min() {return -m_value;}
-
-    Scalar max() {return m_value;}
-    protected:
-    Scalar m_value;
-    uint64_t m_t_start;
-    Scalar m_omega;
-    };
-//~
-
 
 namespace detail
     {

@@ -18,6 +18,14 @@
 #include <sstream>
 #include <stdexcept>
 #include <string.h>
+//Paniz
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <math.h>
+#include <iostream>
+#include <memory>
+
 using namespace std;
 using namespace hoomd::detail;
 
@@ -772,6 +780,29 @@ void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
                                  (void*)&bond.groups[0]);
         GSDUtils::checkError(retval, m_fname);
         }
+     // Save the angle_map Paniz
+    
+    /*std::ofstream outFile("angle_map_gsd.bin", std::ios::out | std::ios::binary);
+    if (!outFile)
+    {
+        std::cerr << "Error opening file for writing: angle_map_gsd.bin" << std::endl;
+        return;
+    }
+
+    for (const auto& entry : angle_map_temp2)
+    {
+        // Write the key (unsigned int)
+        outFile.write(reinterpret_cast<const char*>(&entry.first), sizeof(unsigned int));
+
+        // Write the value (Scalar)
+        outFile.write(reinterpret_cast<const char*>(&entry.second), sizeof(Scalar));
+    }
+
+    outFile.close();
+    std::cout << "written" << std::endl;*/
+    //std::cout<<hoomd::AngleMap::angle_map_temp2[0]<<std::endl;
+    
+
     if (angle.size > 0)
         {
         m_exec_conf->msg->notice(10) << "GSD: writing angles/N" << endl;

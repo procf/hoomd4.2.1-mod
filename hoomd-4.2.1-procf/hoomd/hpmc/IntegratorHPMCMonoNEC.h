@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
-
 #ifndef __HPMC_MONO_NEC__H__
 #define __HPMC_MONO_NEC__H__
 
@@ -49,7 +47,7 @@ template<class Shape> class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Sh
 
     public:
     //! Construct the integrator
-    IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Variant> vinf); //~ add vinf [RHEOINF]
+    IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefinition> sysdef);
     //! Destructor
     virtual ~IntegratorHPMCMonoNEC();
 
@@ -218,8 +216,8 @@ template<class Shape> class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Sh
     */
 
 template<class Shape>
-IntegratorHPMCMonoNEC<Shape>::IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Variant> vinf) //~ add vinf [RHEOINF]
-    : IntegratorHPMCMono<Shape>(sysdef, vinf) //~ add vinf [RHEOINF]
+IntegratorHPMCMonoNEC<Shape>::IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefinition> sysdef)
+    : IntegratorHPMCMono<Shape>(sysdef)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCMonoNEC" << std::endl;
 
@@ -896,7 +894,7 @@ void export_IntegratorHPMCMonoNEC(pybind11::module& m, const std::string& name)
                      IntegratorHPMCMono<Shape>,
                      IntegratorHPMC,
                      std::shared_ptr<IntegratorHPMCMonoNEC<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Variant>>()) //~ add vinf [PROCF2023]
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def_property("chain_time",
                       &IntegratorHPMCMonoNEC<Shape>::getChainTime,
                       &IntegratorHPMCMonoNEC<Shape>::setChainTime)

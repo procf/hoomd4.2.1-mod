@@ -336,5 +336,16 @@ void gpu_exchange_ghosts_copy_netvirial_buf(unsigned int n_recv,
                                             const Scalar* d_netvirial_recvbuf,
                                             Scalar* d_netvirial,
                                             unsigned int pitch_out);
+void gpu_exchange_ghosts_pack_particlenlist(unsigned int n_out,
+                                        const uint2* d_ghost_idx_adj,
+                                        const Scalar* d_particlenlist,
+                                        Scalar* d_particlenlist_sendbuf,
+                                        unsigned int pitch_in);
+
+void gpu_exchange_ghosts_copy_particlenlist_buf(unsigned int n_recv,
+                                            const Scalar* d_particlenlist_recvbuf,
+                                            Scalar* d_particlenlist,
+                                            unsigned int pitch_out);
     }  // end namespace hoomd
+
 #endif // ENABLE_MPI

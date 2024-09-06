@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
-
 #ifndef __PAIR_EVALUATOR_BUCKINGHAM_H__
 #define __PAIR_EVALUATOR_BUCKINGHAM_H__
 
@@ -103,29 +101,13 @@ class EvaluatorPairBuckingham
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
-        \param _radcontact the sum of the interacting particle radii [RHEOINF]
-        \param _pair_typeids the typeID of the interacting particles [RHEOINF]
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairBuckingham(Scalar _rsq, Scalar _radcontact, unsigned int _pair_typeids[2], Scalar _rcutsq, const param_type& _params) //~ add radcontact, pair_typeIDs [RHEOINF]
-        : rsq(_rsq), radcontact(_radcontact), rcutsq(_rcutsq), A(_params.A), rho(_params.rho), C(_params.C) //~ add radcont [RHEOINF]
+    DEVICE EvaluatorPairBuckingham(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+        : rsq(_rsq), rcutsq(_rcutsq), A(_params.A), rho(_params.rho), C(_params.C)
         {
-        typei = _pair_typeids[0]; //~ add typei [RHEOINF]
-        typej = _pair_typeids[1]; //~ add typej [RHEOINF]
         }
-
-    //!~ add diameter [RHEOINF]
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-    //~
 
     //! Buckingham doesn't use charge
     DEVICE static bool needsCharge()
@@ -204,10 +186,6 @@ class EvaluatorPairBuckingham
 
     protected:
     Scalar rsq;    //!< Stored rsq from the constructor
-    Scalar radcontact; //!< Stored contact-distance from the constructor [RHEOINF]
-    unsigned int pair_typeids; //!< Stored pair typeIDs from the constructor [RHEOINF] 
-    unsigned int typei;     //!<~ Stored typeID of particle i from the constructor [RHEOINF]
-    unsigned int typej;     //!<~ Stored typeID of particle j from the constructor [RHEOINF]
     Scalar rcutsq; //!< Stored rcutsq from the constructor
     Scalar A;      //!< Buckingham parameter extracted from the params passed to the constructor
     Scalar rho;    //!< Buckingham parameter extracted from the params passed to the constructor

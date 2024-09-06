@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
-
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
@@ -34,13 +32,7 @@ namespace detail
 //! Export the base HPMCMono integrators
 void export_polyhedron(pybind11::module& m)
     {
-    //~ Update the function calls to pass both required arguments [RHEOINF]
-    m.def("create_IntegratorHPMCMonoPolyhedron", [](std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Variant> vinf)
-    {
-        return std::make_shared<IntegratorHPMCMono<ShapePolyhedron>>(sysdef, vinf);
-    });
-    //export_IntegratorHPMCMono<ShapePolyhedron>(m, "IntegratorHPMCMonoPolyhedron");
-    //~
+    export_IntegratorHPMCMono<ShapePolyhedron>(m, "IntegratorHPMCMonoPolyhedron");
     export_ComputeFreeVolume<ShapePolyhedron>(m, "ComputeFreeVolumePolyhedron");
     export_ComputeSDF<ShapePolyhedron>(m, "ComputeSDFPolyhedron");
     export_UpdaterMuVT<ShapePolyhedron>(m, "UpdaterMuVTPolyhedron");

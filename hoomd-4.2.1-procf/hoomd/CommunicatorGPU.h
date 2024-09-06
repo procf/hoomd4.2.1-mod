@@ -238,6 +238,9 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     GlobalVector<Scalar> m_netvirial_ghost_sendbuf; //!< Send buffer for netvirial
     GlobalVector<Scalar> m_netvirial_ghost_recvbuf; //!< Recv buffer for netvirial
 
+    GlobalVector<Scalar> m_particlenlist_ghost_sendbuf; //
+    GlobalVector<Scalar> m_particlenlist_ghost_recvbuf; //(Paniz)
+
     GlobalVector<unsigned int>
         m_ghost_begin; //!< Begin index for every stage and neighbor in send buf
     GlobalVector<unsigned int> m_ghost_end; //!< Begin index for every and neighbor in send buf

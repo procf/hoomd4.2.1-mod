@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 /*!
  * \file mpcd/Integrator.cc
@@ -20,8 +20,8 @@ namespace hoomd
  * \param sysdef System definition
  * \param deltaT Fundamental integration timestep
  */
-mpcd::Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, std::shared_ptr<Variant> vinf) //~ add vinf [RHEOINF]
-    : IntegratorTwoStep(sysdef, deltaT, vinf) //~ add vinf [RHEOINF]
+mpcd::Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar shear_rate) //~ add shear rate [PROCF2023]
+    : IntegratorTwoStep(sysdef, deltaT, shear_rate) //~ add shear rate [PROCF2023]
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD Integrator" << std::endl;
     }
@@ -191,7 +191,7 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
     pybind11::class_<mpcd::Integrator,
                      hoomd::md::IntegratorTwoStep,
                      std::shared_ptr<mpcd::Integrator>>(m, "Integrator")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, std::shared_ptr<Variant>>()) //~ add vinf [RHEOINF]
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, Scalar>()) //~ add Scalar for shear rate [PROCF2023]
         .def("setCollisionMethod", &mpcd::Integrator::setCollisionMethod)
         .def("removeCollisionMethod", &mpcd::Integrator::removeCollisionMethod)
         .def("setStreamingMethod", &mpcd::Integrator::setStreamingMethod)

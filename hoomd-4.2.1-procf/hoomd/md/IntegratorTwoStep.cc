@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 #include "IntegratorTwoStep.h"
 
@@ -18,8 +18,8 @@ namespace hoomd
     {
 namespace md
     {
-IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, std::shared_ptr<Variant> vinf) //~ add vinf [RHEOINF]
-    : Integrator(sysdef, deltaT, vinf), m_prepared(false), m_gave_warning(false) //~ add vinf [RHEOINF]
+IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar shear_rate) //~ add SR [PROCF2023]
+    : Integrator(sysdef, deltaT, shear_rate), m_prepared(false), m_gave_warning(false) //~ add shear rate [PROCF2023]
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
 
@@ -54,8 +54,6 @@ void IntegratorTwoStep::update(uint64_t timestep)
     {
     Integrator::update(timestep);
 
-    Scalar shear_rate = (*m_vinf)(timestep); //~ calc shear rate [RHEOINF]
-
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0)
         {
@@ -73,16 +71,12 @@ void IntegratorTwoStep::update(uint64_t timestep)
         // files. Work around this by calling setDeltaT every timestep.
         method->setAnisotropic(m_integrate_rotational_dof);
         method->setDeltaT(m_deltaT);
-        method->setSR(shear_rate); //~ add shear rate [RHEOINF]
         method->integrateStepOne(timestep);
         }
 
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
         {
-
-        m_comm->setSR(shear_rate); //~ set shear rate [RHEOINF]
-
         // Update the rigid body consituent particles before communicating so that any such
         // particles that move from one domain to another are migrated.
         updateRigidBodies(timestep + 1);
@@ -155,6 +149,29 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
         }
     }
 
+//~ add shear rate [PROCF2023] 
+/*! \param SR new shear rate to set
+    \post \a SR is also set on all contained integration methods
+*/
+void IntegratorTwoStep::setSR(Scalar shear_rate)
+    {
+    Integrator::setSR(shear_rate);
+
+    // set SR on all methods already added
+    for (auto& method : m_methods)
+        {
+        method->setSR(shear_rate);
+        }
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+	// perform all necessary communication steps to update SR for
+	// a) migrated particles
+	// b) ghost particles
+        m_comm->setSR(shear_rate);
+#endif
+    }
+//~
 
 /*! \param group Group over which to count degrees of freedom.
 
@@ -436,7 +453,7 @@ void export_IntegratorTwoStep(pybind11::module& m)
     pybind11::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep>>(
         m,
         "IntegratorTwoStep")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, std::shared_ptr<Variant>>()) //~ add vinf [RHEOINF]
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, Scalar>()) //~ add Scalar for shear rate [PROCF2023]
         .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
         .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
         .def_property("integrate_rotational_dof",

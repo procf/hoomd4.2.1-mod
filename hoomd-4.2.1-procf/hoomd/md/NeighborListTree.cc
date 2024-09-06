@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
+
 /*! \file NeighborListTree.cc
     \brief Defines NeighborListTree
 */
@@ -205,7 +207,8 @@ void NeighborListTree::buildTree()
                                              access_location::host,
                                              access_mode::readwrite);
 
-    const BoxDim& box = m_pdata->getBox();
+    //~ don't get the ghost layer width [PROCF2023]
+    /*const BoxDim& box = m_pdata->getBox();
     Scalar ghost_layer_width(0.0);
 #ifdef ENABLE_MPI
     if (m_sysdef->isDomainDecomposed())
@@ -220,7 +223,8 @@ void NeighborListTree::buildTree()
     if (this->m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
         {
         ghost_width.z = ghost_layer_width;
-        }
+        }*/
+    //~
 
     // construct a point AABB for each particle owned by this rank, and push it into the right spot
     // in the AABB list
@@ -235,7 +239,8 @@ void NeighborListTree::buildTree()
          * may get stuck when particles are far outside the box
          */
 
-        Scalar3 f = box.makeFraction(vec_to_scalar3(my_pos), ghost_width);
+        //~ don't check if a particle is inside the unit cell [PROCF2023]
+        /*Scalar3 f = box.makeFraction(vec_to_scalar3(my_pos), ghost_width);
         if (((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001))
              || (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001))
              || (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)))
@@ -250,7 +255,8 @@ void NeighborListTree::buildTree()
               << ", fy: " << f.y << ", fz:" << f.z << ")" << endl;
             throw runtime_error(s.str());
             return;
-            }
+            }*/
+        //~
 
         unsigned int my_type = __scalar_as_int(h_postype.data[i].w);
         unsigned int my_aabb_idx = m_type_head[my_type] + m_map_pid_tree[i];

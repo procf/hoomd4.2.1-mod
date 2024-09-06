@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 #include "IntegratorTwoStep.h"
 
@@ -33,7 +33,7 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
     {
     public:
     //! Constructs the minimizer and associates it with the system
-    FIREEnergyMinimizer(std::shared_ptr<SystemDefinition>, Scalar, std::shared_ptr<Variant>); //~ add vinf [RHEOINF]
+    FIREEnergyMinimizer(std::shared_ptr<SystemDefinition>, Scalar, Scalar); //~ add Scalar for shear rate [PROCF2023]
     virtual ~FIREEnergyMinimizer();
 
     //! Reset the minimization

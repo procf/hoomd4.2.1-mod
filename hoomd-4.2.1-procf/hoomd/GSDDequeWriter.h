@@ -7,11 +7,15 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <iostream>
 #include <deque>
 
 #include <pybind11/pybind11.h>
 
 #include "GSDDumpWriter.h"
+
+
+
 
 namespace hoomd
     {

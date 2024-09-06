@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 /*! \file ComputeThermo.cc
     \brief Contains code for the ComputeThermo class
@@ -95,10 +95,10 @@ void ComputeThermo::computeProperties()
     // access the net force, pe, and virial
     const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
     const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
-    const GlobalArray<Scalar>& net_virial_ind = m_pdata->getNetVirialInd(); //~ add virial_ind [RHEOINF]
+    const GlobalArray<Scalar>& net_virial_ind = m_pdata->getNetVirialInd(); //~ add virial_ind [PROCF2023]
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_net_virial_ind(net_virial_ind, access_location::host, access_mode::read); //~ add virial_ind [RHEOINF]
+    ArrayHandle<Scalar> h_net_virial_ind(net_virial_ind, access_location::host, access_mode::read); //~ add virial_ind [PROCF2023]
 
     // total kinetic energy
     double ke_trans_total = 0.0;
@@ -246,7 +246,7 @@ void ComputeThermo::computeProperties()
         W = Scalar(1. / 3.) * (virial_xx + virial_yy + virial_zz);
         }
 
-    //~ add virial_ind [RHEOINF] 
+    //~ add virial_ind [PROCF2023] 
     double virial_ind[5];
     for (unsigned int l = 0; l < 5; l++)
 	virial_ind[l] = 0.0;
@@ -314,7 +314,7 @@ void ComputeThermo::computeProperties()
     h_properties.data[thermo_index::pressure_yz] = pressure_yz;
     h_properties.data[thermo_index::pressure_zz] = pressure_zz;
 
-    //~ virial_ind = individual forces that make up the virial component [RHEOINF] 
+    //~ virial_ind = individual forces that make up the virial component [PROCF2023] 
     virial_ind[0] /= volume;
     virial_ind[1] /= volume;
     virial_ind[2] /= volume;
@@ -363,7 +363,7 @@ void export_ComputeThermo(pybind11::module& m)
         .def_property_readonly("kinetic_temperature", &ComputeThermo::getTemperature)
         .def_property_readonly("pressure", &ComputeThermo::getPressure)
         .def_property_readonly("pressure_tensor", &ComputeThermo::getPressureTensorPython)
-        .def_property_readonly("virial_ind_tensor", &ComputeThermo::getVirialTensorPython) //~ add virial_ind [RHEOINF]
+        .def_property_readonly("virial_ind_tensor", &ComputeThermo::getVirialTensorPython) //~ add virial_ind [PROCF2023]
         .def_property_readonly("degrees_of_freedom", &ComputeThermo::getNDOF)
         .def_property_readonly("translational_degrees_of_freedom",
                                &ComputeThermo::getTranslationalDOF)

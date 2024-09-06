@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 #ifdef ENABLE_MPI
 
@@ -2983,9 +2983,9 @@ void test_communicator_compare(communicator_creator comm_creator_1,
         new TwoStepConstantVolume(sysdef_2, group_all_2, tstat_2));
 
     Scalar deltaT = 0.001;
-    Scalar vinf = 0.0; //~ add dummy shear_rate [RHEOINF]
-    std::shared_ptr<IntegratorTwoStep> nve_up_1(new IntegratorTwoStep(sysdef_1, deltaT, vinf)); //~ add dummy vinf [RHEOINF]
-    std::shared_ptr<IntegratorTwoStep> nve_up_2(new IntegratorTwoStep(sysdef_2, deltaT, vinf)); //~ add dummy vinf [RHEOINF] 
+    Scalar shear_rate = 0.0; //~ add dummy shear_rate [PROCF2023]
+    std::shared_ptr<IntegratorTwoStep> nve_up_1(new IntegratorTwoStep(sysdef_1, deltaT, shear_rate)); //~ add shear_rate [PROCF2023]
+    std::shared_ptr<IntegratorTwoStep> nve_up_2(new IntegratorTwoStep(sysdef_2, deltaT, shear_rate)); //~ add shear_Rate [PROCF2023]
     nve_up_1->getIntegrationMethods().push_back(two_step_nve_1);
     nve_up_2->getIntegrationMethods().push_back(two_step_nve_2);
 

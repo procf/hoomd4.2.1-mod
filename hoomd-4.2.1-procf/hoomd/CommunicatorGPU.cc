@@ -147,6 +147,12 @@ void CommunicatorGPU::allocateBuffers()
     GlobalVector<Scalar> netvirial_ghost_recvbuf(m_exec_conf);
     m_netvirial_ghost_recvbuf.swap(netvirial_ghost_recvbuf);
 
+    GlobalVector<Scalar> particlenlist_ghost_sendbuf(m_exec_conf);
+    m_particlenlist_ghost_sendbuf.swap(particlenlist_ghost_sendbuf);
+
+    GlobalVector<Scalar> particlenlist_ghost_recvbuf(m_exec_conf);
+    m_particlenlist_ghost_recvbuf.swap(particlenlist_ghost_recvbuf);
+
     GlobalVector<unsigned int> ghost_begin(m_exec_conf);
     m_ghost_begin.swap(ghost_begin);
 
@@ -3311,7 +3317,7 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
     {
     CommFlags flags = getFlags();
     if (!flags[comm_flag::net_force] && !flags[comm_flag::net_torque]
-        && !flags[comm_flag::net_virial])
+        && !flags[comm_flag::net_virial] && !flags[comm_flag::particle_n_list])
         return;
 
     std::ostringstream oss;
@@ -3328,7 +3334,10 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
         {
         oss << "virial";
         }
-
+    if (flags[comm_flag::particle_n_list])
+        {
+        oss << "particlenlist";
+        }
     m_exec_conf->msg->notice(7) << oss.str() << std::endl;
 
     // main communication loop
@@ -3377,7 +3386,7 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
-
+        
         if (flags[comm_flag::net_torque])
             {
             // access particle data
@@ -3433,6 +3442,33 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
                 CHECK_CUDA_ERROR();
             }
 
+        if (flags[comm_flag::particle_n_list])
+            {
+            // access particle data
+            ArrayHandle<Scalar> d_particlenlist(m_pdata->getParticleNList(),
+                                            access_location::device,
+                                            access_mode::read);
+
+            // access ghost send indices
+            ArrayHandle<uint2> d_ghost_idx_adj(m_ghost_idx_adj,
+                                               access_location::device,
+                                               access_mode::read);
+
+            // access output buffers
+            ArrayHandle<Scalar> d_particlenlist_ghost_sendbuf(m_particlenlist_ghost_sendbuf,
+                                                          access_location::device,
+                                                          access_mode::overwrite);
+
+            // Pack ghosts into send buffers
+            gpu_exchange_ghosts_pack_particlenlist(m_n_send_ghosts_tot[stage],
+                                               d_ghost_idx_adj.data + m_idx_offs[stage],
+                                               d_particlenlist.data,
+                                               d_particlenlist_ghost_sendbuf.data,
+                                               (unsigned int)m_pdata->getParticleNList().getPitch());
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
         /*
          * Ghost particle communication
          */
@@ -3453,6 +3489,11 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
         if (flags[comm_flag::net_virial])
             {
             m_netvirial_ghost_recvbuf.resize(6 * n_max);
+            }
+        
+        if (flags[comm_flag::particle_n_list])
+            {
+            m_particlenlist_ghost_recvbuf.resize(20 * n_max);
             }
 
         // first ghost ptl index
@@ -3476,6 +3517,9 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
             ArrayHandle<Scalar> h_netvirial_ghost_recvbuf(m_netvirial_ghost_recvbuf,
                                                           access_location::host,
                                                           access_mode::overwrite);
+            ArrayHandle<Scalar> h_particlenlist_ghost_recvbuf(m_particlenlist_ghost_recvbuf,
+                                                          access_location::host,
+                                                          access_mode::overwrite);                                              
 
             // send buffer
             ArrayHandle<Scalar4> h_netforce_ghost_sendbuf(m_netforce_ghost_sendbuf,
@@ -3487,6 +3531,9 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
             ArrayHandle<Scalar> h_netvirial_ghost_sendbuf(m_netvirial_ghost_sendbuf,
                                                           access_location::host,
                                                           access_mode::read);
+            ArrayHandle<Scalar> h_particlenlist_ghost_sendbuf(m_particlenlist_ghost_sendbuf,
+                                                          access_location::host,
+                                                          access_mode::read);                                              
 
             ArrayHandleAsync<unsigned int> h_unique_neighbors(m_unique_neighbors,
                                                               access_location::host,
@@ -3598,6 +3645,40 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
                     recv_bytes
                         += (unsigned int)(6 * m_n_recv_ghosts[stage][ineigh] * sizeof(Scalar));
                     }
+                if (flags[comm_flag::particle_n_list])
+                    {
+                    if (m_n_send_ghosts[stage][ineigh])
+                        {
+                        MPI_Isend(h_particlenlist_ghost_sendbuf.data
+                                      + 20 * h_ghost_begin.data[ineigh + stage * m_n_unique_neigh],
+                                  int(20 * m_n_send_ghosts[stage][ineigh] * sizeof(Scalar)),
+                                  MPI_BYTE,
+                                  neighbor,
+                                  4,
+                                  m_mpi_comm,
+                                  &req);
+                        m_reqs.push_back(req);
+                        }
+                    send_bytes
+                        += (unsigned int)(20 * m_n_send_ghosts[stage][ineigh] * sizeof(Scalar));
+
+                    if (m_n_recv_ghosts[stage][ineigh])
+                        {
+                        MPI_Irecv(h_particlenlist_ghost_recvbuf.data
+                                      + 20 * (m_ghost_offs[stage][ineigh] + offs),
+                                  int(20 * m_n_recv_ghosts[stage][ineigh] * sizeof(Scalar)),
+                                  MPI_BYTE,
+                                  neighbor,
+                                  4,
+                                  m_mpi_comm,
+                                  &req);
+                        m_reqs.push_back(req);
+                        }
+                    recv_bytes
+                        += (unsigned int)(20 * m_n_recv_ghosts[stage][ineigh] * sizeof(Scalar));
+                    }
+
+        
                 }
 
             // complete communication
@@ -3664,6 +3745,30 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
                 d_netvirial_ghost_recvbuf.data,
                 d_netvirial.data + first_idx,
                 (unsigned int)m_pdata->getNetVirial().getPitch());
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+        
+
+        if (flags[comm_flag::paticle_n_list])
+            {
+            // access receive buffers
+            ArrayHandle<Scalar> d_particlenlist_ghost_recvbuf(m_particlenlist_ghost_recvbuf,
+                                                          access_location::device,
+                                                          access_mode::read);
+
+            // access particle data
+            ArrayHandle<Scalar> d_particlenlist(m_pdata->getParticleNList(),
+                                            access_location::device,
+                                            access_mode::readwrite);
+
+            // copy recv buf into particle data
+            gpu_exchange_ghosts_copy_particlenlist_buf(
+                m_n_recv_ghosts_tot[stage],
+                d_particlenlist_ghost_recvbuf.data,
+                d_particlenlist.data + first_idx,
+                (unsigned int)m_pdata->getParticleNList().getPitch());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();

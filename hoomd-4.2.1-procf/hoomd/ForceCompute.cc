@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 /*! \file ForceCompute.cc
     \brief Defines the ForceCompute class
@@ -37,14 +37,14 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     unsigned int max_num_particles = m_pdata->getMaxN();
     GlobalArray<Scalar4> force(max_num_particles, m_exec_conf);
     GlobalArray<Scalar> virial(max_num_particles, 6, m_exec_conf);
-    GlobalArray<Scalar> virial_ind(max_num_particles, 5, m_exec_conf); //~ add virial_ind [RHEOINF]
+    GlobalArray<Scalar> virial_ind(max_num_particles, 5, m_exec_conf); //~ add virial_ind [PROCF2023]
     GlobalArray<Scalar4> torque(max_num_particles, m_exec_conf); 
     m_force.swap(force);
     TAG_ALLOCATION(m_force);
     m_virial.swap(virial);
     TAG_ALLOCATION(m_virial);
-    m_virial_ind.swap(virial_ind); //~ add virial_ind [RHEOINF]
-    TAG_ALLOCATION(m_virial_ind); //~ add virial_ind [RHEOINF]
+    m_virial_ind.swap(virial_ind); //~ add virial_ind [PROCF2023]
+    TAG_ALLOCATION(m_virial_ind); //~ add virial_ind [PROCF2023]
     m_torque.swap(torque);
     TAG_ALLOCATION(m_torque);
 
@@ -52,11 +52,11 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
         ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar> h_virial_ind(m_virial_ind, access_location::host, access_mode::overwrite); //~ add virial_ind [RHEOINF]
+        ArrayHandle<Scalar> h_virial_ind(m_virial_ind, access_location::host, access_mode::overwrite); //~ add virial_ind [PROCF2023]
         memset(h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
         memset(h_torque.data, 0, sizeof(Scalar4) * m_torque.getNumElements());
         memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
-        memset(h_virial.data, 0, sizeof(Scalar) * m_virial_ind.getNumElements()); //~ add virial_ind [RHEOINF]
+        memset(h_virial.data, 0, sizeof(Scalar) * m_virial_ind.getNumElements()); //~ add virial_ind [PROCF2023]
         }
 
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
@@ -85,7 +85,7 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
 #endif
 
     m_virial_pitch = m_virial.getPitch();
-    m_virial_ind_pitch = m_virial.getPitch(); //~ add virial_ind [RHEOINF]
+    m_virial_ind_pitch = m_virial.getPitch(); //~ add virial_ind [PROCF2023]
 
     // connect to the ParticleData to receive notifications when particles change order in memory
     m_pdata->getParticleSortSignal().connect<ForceCompute, &ForceCompute::setParticlesSorted>(this);
@@ -114,23 +114,23 @@ void ForceCompute::reallocate()
     {
     m_force.resize(m_pdata->getMaxN());
     m_virial.resize(m_pdata->getMaxN(), 6);
-    m_virial_ind.resize(m_pdata->getMaxN(), 5); //~ add virial_ind [RHEOINF]
+    m_virial_ind.resize(m_pdata->getMaxN(), 5); //~ add virial_ind [PROCF2023]
     m_torque.resize(m_pdata->getMaxN());
 
         {
         ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar> h_virial_ind(m_virial_ind, access_location::host, access_mode::overwrite); //~ add virial_ind [RHEOINF]
+        ArrayHandle<Scalar> h_virial_ind(m_virial_ind, access_location::host, access_mode::overwrite); //~ add virial_ind [PROCF2023]
         memset(h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
         memset(h_torque.data, 0, sizeof(Scalar4) * m_torque.getNumElements());
         memset(h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
-        memset(h_virial_ind.data, 0, sizeof(Scalar) * m_virial_ind.getNumElements()); //~ add virial_ind [RHEOINF]
+        memset(h_virial_ind.data, 0, sizeof(Scalar) * m_virial_ind.getNumElements()); //~ add virial_ind [PROCF2023]
         }
 
     // the pitch of the virial array may have changed
     m_virial_pitch = m_virial.getPitch();
-    m_virial_ind_pitch = m_virial_ind.getPitch(); //~ add virial_ind [RHEOINF]
+    m_virial_ind_pitch = m_virial_ind.getPitch(); //~ add virial_ind [PROCF2023]
 
     // update memory hints
     updateGPUAdvice();
@@ -331,7 +331,7 @@ std::vector<Scalar> ForceCompute::calcVirialGroup(std::shared_ptr<ParticleGroup>
     return total_virial;
     }
 
-//~ add virial_ind [RHEOINF]
+//~ add virial_ind [PROCF2023]
 std::vector<Scalar> ForceCompute::calcVirialIndGroup(std::shared_ptr<ParticleGroup> group)
     {
     const unsigned int group_size = group->getNumMembers();
@@ -545,7 +545,7 @@ pybind11::object ForceCompute::getVirialsPython()
         }
     }
 
-//~ add virial_ind [RHEOINF]
+//~ add virial_ind [PROCF2023]
 pybind11::object ForceCompute::getVirialsIndPython()
     {
     if (!m_computed_flags[pdata_flag::virial_ind_tensor])
@@ -700,7 +700,7 @@ Scalar ForceCompute::getVirial(unsigned int tag, unsigned int component)
     return result;
     }
 
-//~ add virial_ind [RHEOINF]
+//~ add virial_ind [PROCF2023]
 /*! \param tag Global particle tag
     \param component VirialInd component (0=conservative, 1=dissipative, 2=random, 3=squeezing_hydro, 4=contact)
     \returns VirialInd of particle referenced by tag
@@ -758,7 +758,7 @@ void export_ForceCompute(pybind11::module& m)
         .def("getForce", &ForceCompute::getForce)
         .def("getTorque", &ForceCompute::getTorque)
         .def("getVirial", &ForceCompute::getVirial)
-        .def("getVirialInd", &ForceCompute::getVirialInd) //~ add virial_ind [RHEOINF]
+        .def("getVirialInd", &ForceCompute::getVirialInd) //~ add virial_ind [PROCF2023]
         .def("getEnergy", &ForceCompute::getEnergy)
         .def("getExternalEnergy", &ForceCompute::getExternalEnergy)
         .def("getExternalVirial", &ForceCompute::getExternalVirial)

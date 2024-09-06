@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-########## Modified by Rheoinformatic ##~ [RHEOINF] ##########
+########## Modified by PRO-CF ##~ [PROCF2023] ##########
 
 """Implement BoxResize."""
 
@@ -105,19 +105,18 @@ class BoxResize(Updater):
             update.
     """
 
-    def __init__(self, trigger, box1, box2, variant, vinf, filter=All()): ##~ add vinf [RHEOINF] 
+    def __init__(self, trigger, box1, box2, variant, filter=All(), SR=0.0): ##~ add default SR [PROCF2023]
         params = ParameterDict(box1=Box,
                                box2=Box,
                                variant=Variant,
-                               vinf=Variant, ##~ add vinf [RHEOINF]
-                               filter=ParticleFilter
-                               )
+                               filter=ParticleFilter,
+                               SR=float(SR)) ##~ add shear rate [PROCF2023]
         params['box1'] = box1
         params['box2'] = box2
         params['variant'] = variant
         params['trigger'] = trigger
-        params['vinf'] = vinf ##~ add vinf [RHEOINF]
         params['filter'] = filter
+        params['SR'] = SR ##~ add shear rate [PROCF2023]
         self._param_dict.update(params)
         super().__init__(trigger)
 
@@ -126,11 +125,11 @@ class BoxResize(Updater):
         if isinstance(self._simulation.device, hoomd.device.CPU):
             self._cpp_obj = _hoomd.BoxResizeUpdater(
                 self._simulation.state._cpp_sys_def, self.trigger,
-                self.box1._cpp_obj, self.box2._cpp_obj, self.variant, self.vinf, group) ##~ add vinf [RHEOINF]
+                self.box1._cpp_obj, self.box2._cpp_obj, self.variant, group, self.SR) ##~ add SR [PROCF2023]
         else:
             self._cpp_obj = _hoomd.BoxResizeUpdaterGPU(
                 self._simulation.state._cpp_sys_def, self.trigger,
-                self.box1._cpp_obj, self.box2._cpp_obj, self.variant, group)
+                self.box1._cpp_obj, self.box2._cpp_obj, self.variant, group, self.SR) ##~ add SR [PROCF2023]
 
     def get_box(self, timestep):
         """Get the box for a given timestep.
@@ -166,7 +165,7 @@ class BoxResize(Updater):
         if isinstance(state._simulation.device, hoomd.device.CPU):
             updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def, Periodic(1),
                                               state.box._cpp_obj, box._cpp_obj,
-                                              Constant(1), Constant(1), group) ##~ add vinf [RHEOINF]
+                                              Constant(1), group)
         else:
             updater = _hoomd.BoxResizeUpdaterGPU(state._cpp_sys_def,
                                                  Periodic(1),

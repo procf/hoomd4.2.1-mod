@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 #include "Compute.h"
 #include "GlobalArray.h"
@@ -66,7 +66,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         m_deltaT = dt;
         }
 
-    //~ add shear rate [RHEOINF]
+    //~ set shear rate [PROCF2023] 
     virtual void setSR(Scalar shear_rate)
         {
         m_SR = shear_rate;
@@ -96,7 +96,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     //! Sum all virial terms for a group
     std::vector<Scalar> calcVirialGroup(std::shared_ptr<ParticleGroup> group);
 
-    //~ Sum all virial_ind terms for a group [RHEOINF]
+    //~ Sum all virial_ind terms for a group [PROCF2023]
     std::vector<Scalar> calcVirialIndGroup(std::shared_ptr<ParticleGroup> group);
     //~
 
@@ -124,7 +124,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     */
     pybind11::object getVirialsPython();
 
-    //~ add virial_ind [RHEOINF] 
+    //~ add virial_ind [PROCF2023] 
     /** Get per particle virial_inds
 
         @returns a Numpy array with per particle virial_inds in increasing tag order.
@@ -141,7 +141,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
     //! Easy access to the virial on a single particle
     Scalar getVirial(unsigned int tag, unsigned int component);
 
-    //~! Easy access to the virial on a single particle [RHEOINF]
+    //~! Easy access to the virial on a single particle [PROCF2023]
     Scalar getVirialInd(unsigned int tag, unsigned int component);
     //~
 
@@ -160,7 +160,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         return m_virial;
         }
 
-    //~! Get the array of computed virial_inds [RHEOINF] 
+    //~! Get the array of computed virial_inds [PROCF2023] 
     const GlobalArray<Scalar>& getVirialIndArray() const
         {
         return m_virial_ind;
@@ -232,7 +232,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
 
     Scalar m_deltaT; //!< timestep size (required for some types of non-conservative forces)
 
-    Scalar m_SR; //!<~ shear rate [RHEOINF]
+    Scalar m_SR;     //~!< shear rate [PROCF2023]
 
     GlobalArray<Scalar4> m_force; //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the
                                   //!< force, m_force.u is the PE
@@ -245,8 +245,8 @@ class PYBIND11_EXPORT ForceCompute : public Compute
      */
     GlobalArray<Scalar> m_virial;
     size_t m_virial_pitch;         //!< The pitch of the 2D virial array
-    GlobalArray<Scalar> m_virial_ind; //~ add virial_ind [RHEOINF]
-    size_t m_virial_ind_pitch; //~!< The pitch of the 2D virial_ind array [RHEOINF]
+    GlobalArray<Scalar> m_virial_ind; //~ add virial_ind [PROCF2023]
+    size_t m_virial_ind_pitch; //~!< The pitch of the 2D virial_ind array [PROCF2023]
     GlobalArray<Scalar4> m_torque; //!< per-particle torque
 
     Scalar m_external_virial[6]; //!< Stores external contribution to virial
@@ -279,9 +279,9 @@ class PYBIND11_EXPORT LocalForceComputeData : public GhostLocalDataAccess<Output
                                                      pdata.getNGhosts(),
                                                      pdata.getNGlobal()),
           m_force_handle(), m_torque_handle(), m_virial_handle(),
-          m_virial_ind_handle(), //~ add virial_ind [RHEOINF]
+          m_virial_ind_handle(), //~ add virial_ind [PROCF2023]
           m_virial_pitch(data.getVirialArray().getPitch()), 
-          m_virial_ind_pitch(data.getVirialIndArray().getPitch()), //~ add virial_ind [RHEOINF]
+          m_virial_ind_pitch(data.getVirialIndArray().getPitch()), //~ add virial_ind [PROCF2023]
           m_buffers_writeable(data.getLocalBuffersWriteable())
         {
         }
@@ -332,7 +332,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public GhostLocalDataAccess<Output
                 {sizeof(Scalar), static_cast<size_t>(m_virial_pitch * sizeof(Scalar))}));
         }
 
-    //~ add virial_ind [RHEOINF] 
+    //~ add virial_ind [PROCF2023] 
     Output getVirialInd(GhostDataFlag flag)
         {
         // we order the strides as (1, m_virial_ind_pitch) because we need to expose
@@ -356,7 +356,7 @@ class PYBIND11_EXPORT LocalForceComputeData : public GhostLocalDataAccess<Output
         m_force_handle.reset(nullptr);
         m_torque_handle.reset(nullptr);
         m_virial_handle.reset(nullptr);
-        m_virial_ind_handle.reset(nullptr); //~ add virial_ind [RHEOINF]
+        m_virial_ind_handle.reset(nullptr); //~ add virial_ind [PROCF2023]
         m_rtag_handle.reset(nullptr);
         }
 
@@ -364,10 +364,10 @@ class PYBIND11_EXPORT LocalForceComputeData : public GhostLocalDataAccess<Output
     std::unique_ptr<ArrayHandle<Scalar4>> m_force_handle;
     std::unique_ptr<ArrayHandle<Scalar4>> m_torque_handle;
     std::unique_ptr<ArrayHandle<Scalar>> m_virial_handle;
-    std::unique_ptr<ArrayHandle<Scalar>> m_virial_ind_handle; //~ add virial_ind [RHEOINF]
+    std::unique_ptr<ArrayHandle<Scalar>> m_virial_ind_handle; //~ add virial_ind [PROCF2023]
     std::unique_ptr<ArrayHandle<unsigned int>> m_rtag_handle;
     size_t m_virial_pitch;
-    size_t m_virial_ind_pitch; //~ add virial_ind [RHEOINF]
+    size_t m_virial_ind_pitch; //~ add virial_ind [PROCF2023]
     bool m_buffers_writeable;
     };
 
@@ -388,7 +388,7 @@ template<class Output> void export_LocalForceComputeData(pybind11::module& m, st
         .def("getPotentialEnergy", &LocalForceComputeData<Output>::getPotentialEnergy)
         .def("getTorque", &LocalForceComputeData<Output>::getTorque)
         .def("getVirial", &LocalForceComputeData<Output>::getVirial)
-        .def("getVirialInd", &LocalForceComputeData<Output>::getVirialInd) //~ add virial_ind [RHEOINF]
+        .def("getVirialInd", &LocalForceComputeData<Output>::getVirialInd) //~ add virial_ind [PROCF2023]
         .def("enter", &LocalForceComputeData<Output>::enter)
         .def("exit", &LocalForceComputeData<Output>::exit);
     };

@@ -1,14 +1,11 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
-
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoNEC.h"
-#include "../Variant.h" //~ add vinf [RHEOINF]
 
 #include "ComputeSDF.h"
 #include "ShapeConvexPolyhedron.h"
@@ -40,18 +37,8 @@ namespace detail
 //! Export the base HPMCMono integrators
 void export_convex_polyhedron(pybind11::module& m)
     {
-    //~ Update the function calls to pass both required arguments [RHEOINF]
-    m.def("create_IntegratorHPMCMonoConvexPolyhedron", [](std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Variant> vinf)
-    {
-        return std::make_shared<IntegratorHPMCMono<ShapeConvexPolyhedron>>(sysdef, vinf);
-    });
-    m.def("create_IntegratorHPMCMonoNECConvexPolyhedron", [](std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Variant> vinf)
-    {
-        return std::make_shared<IntegratorHPMCMonoNEC<ShapeConvexPolyhedron>>(sysdef, vinf);
-    });
-    //export_IntegratorHPMCMono<ShapeConvexPolyhedron>(m, "IntegratorHPMCMonoConvexPolyhedron");
-    //export_IntegratorHPMCMonoNEC<ShapeConvexPolyhedron>(m, "IntegratorHPMCMonoNECConvexPolyhedron");
-    //~
+    export_IntegratorHPMCMono<ShapeConvexPolyhedron>(m, "IntegratorHPMCMonoConvexPolyhedron");
+    export_IntegratorHPMCMonoNEC<ShapeConvexPolyhedron>(m, "IntegratorHPMCMonoNECConvexPolyhedron");
     export_ComputeFreeVolume<ShapeConvexPolyhedron>(m, "ComputeFreeVolumeConvexPolyhedron");
     export_ComputeSDF<ShapeConvexPolyhedron>(m, "ComputeSDFConvexPolyhedron");
     export_UpdaterMuVT<ShapeConvexPolyhedron>(m, "UpdaterMuVTConvexPolyhedron");

@@ -3,7 +3,6 @@ set(files __init__.py
           remove_drift.py
           custom_updater.py
           particle_filter.py
-          box_shear.py # [RHEOINF]
    )
 
 install(FILES ${files}

@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 #ifndef __PAIR_EVALUATOR_DPDLJ_H__
 #define __PAIR_EVALUATOR_DPDLJ_H__
@@ -122,17 +122,13 @@ class EvaluatorPairDPDThermoLJ
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
-        \param _radcontact the sum of the interacting particle radii [RHEOINF] 
-        \param _pair_typeids the typeIDs of the interacting particles [RHEOINF] 
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairDPDThermoLJ(Scalar _rsq, Scalar _radcontact, unsigned int _pair_typeids[2], Scalar _rcutsq, const param_type& _params) //~ add radcontact, pair_typeIDs [RHEOINF]
-        : rsq(_rsq), radcontact(_radcontact), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6), //~ add radcontact [RHEOINF] 
+    DEVICE EvaluatorPairDPDThermoLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+        : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6),
           lj2(_params.epsilon_x_4 * _params.sigma_6), gamma(_params.gamma)
         {
-        typei = _pair_typeids[0]; //~ add typei [RHEOINF]
-        typej = _pair_typeids[1]; //~ add typej [RHEOINF] 
         }
 
     //! Set i and j, (particle indices, or should it be tags), and the timestep
@@ -162,18 +158,6 @@ class EvaluatorPairDPDThermoLJ
         {
         m_T = Temp;
         }
-        
-    //!~ add diameter [RHEOINF]
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-    //~
 
     //! LJ doesn't use charge
     DEVICE static bool needsCharge()
@@ -222,11 +206,11 @@ class EvaluatorPairDPDThermoLJ
     /*! \param force_divr Output parameter to write the computed total force divided by r.
         \param force_divr_cons Output parameter to write the computed conservative force divided by
        r. 
-       \param cons_divr Output parameter to write the computed conserivative force component of the virial tensor [RHEOINF]
-       \param disp_divr Output parameter to write the computed dissipative force component of the virial tensor [RHEOINF]
-       \param rand_divr Output parameter to write the computed random force component of the virial tensor [RHEOINF]
-       \param sq_divr Output parameter to write the computed short-range lubrication (squeezing) force component of the virial tensor [RHEOINF]
-       \param cont_divr Output parameter to write the computed contact force component of the virial tensor [RHEOINF]
+       \param cons_divr Output parameter to write the computed conserivative force component of the virial tensor [PROCF2023]
+       \param disp_divr Output parameter to write the computed dissipative force component of the virial tensor [PROCF2023]
+       \param rand_divr Output parameter to write the computed random force component of the virial tensor [PROCF2023]
+       \param sq_divr Output parameter to write the computed short-range lubrication (squeezing) force component of the virial tensor [PROCF2023]
+       \param cont_divr Output parameter to write the computed contact force component of the virial tensor [PROCF2023]
        \param pair_eng Output parameter to write the computed pair energy \param energy_shift If
        true, the potential must be shifted so that V(r) is continuous at the cutoff \note There is
        no need to check if rsq < rcutsq in this method. Cutoff tests are performed in PotentialPair.
@@ -239,7 +223,7 @@ class EvaluatorPairDPDThermoLJ
 
     DEVICE bool evalForceEnergyThermo(Scalar& force_divr,
                                       Scalar& force_divr_cons,
-                                      //~ add virial_ind terms [RHEOINF]
+                                      //~ add virial_ind terms [PROCF2023]
                                       Scalar& cons_divr,
                                       Scalar& disp_divr,
                                       Scalar& rand_divr,
@@ -333,10 +317,6 @@ class EvaluatorPairDPDThermoLJ
 
     protected:
     Scalar rsq;          //!< Stored rsq from the constructor
-    Scalar radcontact;   //!<~ Stored contact-distance from the constructor [RHEOINF]
-    unsigned int pair_typeids;    //!< Stored pair typeIDs from the constructor [RHEOINF] 
-    unsigned int typei;           //!<~ Stored typeID of particle i from the constructor [RHEOINF]
-    unsigned int typej;           //!<~ Stored typeID of particle j from the constructor [RHEOINF]
     Scalar rcutsq;       //!< Stored rcutsq from the constructor
     Scalar lj1;          //!< lj1 parameter extracted from the params passed to the constructor
     Scalar lj2;          //!< lj2 parameter extracted from the params passed to the constructor

@@ -1081,6 +1081,63 @@ void gpu_exchange_ghosts_pack_netvirial(unsigned int n_out,
                        pitch_in);
     }
 
+__global__ void gpu_pack_particlenlist_kernel(unsigned int n_out,
+                                          const uint2* d_ghost_idx_adj,
+                                          const Scalar* in,
+                                          Scalar* out,
+                                          unsigned int pitch_in)
+    {
+    unsigned int buf_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (buf_idx >= n_out)
+        return;
+    unsigned int idx = d_ghost_idx_adj[buf_idx].x;
+    out[20 * buf_idx + 0] = in[idx + 0 * pitch_in];
+    out[20 * buf_idx + 1] = in[idx + 1 * pitch_in];
+    out[20 * buf_idx + 2] = in[idx + 2 * pitch_in];
+    out[20 * buf_idx + 3] = in[idx + 3 * pitch_in];
+    out[20 * buf_idx + 4] = in[idx + 4 * pitch_in];
+    out[20 * buf_idx + 5] = in[idx + 5 * pitch_in];
+    out[20 * buf_idx + 6] = in[idx + 6 * pitch_in];
+    out[20 * buf_idx + 7] = in[idx + 7 * pitch_in];
+    out[20 * buf_idx + 8] = in[idx + 8 * pitch_in];
+    out[20 * buf_idx + 9] = in[idx + 9 * pitch_in];
+    out[20 * buf_idx + 10] = in[idx + 10 * pitch_in];
+    out[20 * buf_idx + 11] = in[idx + 11 * pitch_in];
+    out[20 * buf_idx + 12] = in[idx + 12 * pitch_in];
+    out[20 * buf_idx + 13] = in[idx + 13 * pitch_in];
+    out[20 * buf_idx + 14] = in[idx + 14 * pitch_in];
+    out[20 * buf_idx + 15] = in[idx + 15 * pitch_in];
+    out[20 * buf_idx + 16] = in[idx + 16 * pitch_in];
+    out[20 * buf_idx + 17] = in[idx + 17 * pitch_in];
+    out[20 * buf_idx + 18] = in[idx + 18 * pitch_in];
+    out[20 * buf_idx + 19] = in[idx + 19 * pitch_in];
+
+    }
+
+void gpu_exchange_ghosts_pack_particlenlist(unsigned int n_out,
+                                        const uint2* d_ghost_idx_adj,
+                                        const Scalar* d_particlenlist,
+                                        Scalar* d_particle_n_list_sendbuf,
+                                        unsigned int pitch_in)
+    {
+    assert(d_ghost_idx_adj);
+    assert(d_particlenlist);
+    assert(d_particlenlist_sendbuf);
+
+    unsigned int block_size = 256;
+    unsigned int n_blocks = n_out / block_size + 1;
+    hipLaunchKernelGGL(gpu_pack_particle_n_list_kernel,
+                       dim3(n_blocks),
+                       dim3(block_size),
+                       0,
+                       0,
+                       n_out,
+                       d_ghost_idx_adj,
+                       d_particlenlist,
+                       d_particlenlist_sendbuf,
+                       pitch_in);
+    }
+
 template<class members_t, class ranks_t, class group_element_t>
 __global__ void gpu_group_pack_kernel(unsigned int n_out,
                                       const uint2* d_ghost_idx_adj,
@@ -1319,6 +1376,60 @@ void gpu_exchange_ghosts_copy_netvirial_buf(unsigned int n_recv,
                        d_netvirial,
                        pitch_out);
     }
+
+__global__ void gpu_unpack_particlenlist_kernel(unsigned int n_in,
+                                            const Scalar* in,
+                                            Scalar* out,
+                                            unsigned int pitch_out)
+    {
+    unsigned int buf_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (buf_idx >= n_in)
+        return;
+    out[buf_idx + 0 * pitch_out] = in[20 * buf_idx + 0];
+    out[buf_idx + 1 * pitch_out] = in[20 * buf_idx + 1];
+    out[buf_idx + 2 * pitch_out] = in[20 * buf_idx + 2];
+    out[buf_idx + 3 * pitch_out] = in[20 * buf_idx + 3];
+    out[buf_idx + 4 * pitch_out] = in[20 * buf_idx + 4];
+    out[buf_idx + 5 * pitch_out] = in[20 * buf_idx + 5];
+    out[buf_idx + 6 * pitch_out] = in[20 * buf_idx + 6];
+    out[buf_idx + 7 * pitch_out] = in[20 * buf_idx + 7];
+    out[buf_idx + 8 * pitch_out] = in[20 * buf_idx + 8];
+    out[buf_idx + 9 * pitch_out] = in[20 * buf_idx + 9];
+    out[buf_idx + 10 * pitch_out] = in[20 * buf_idx +10];
+    out[buf_idx + 11 * pitch_out] = in[20 * buf_idx + 11];
+    out[buf_idx + 12 * pitch_out] = in[20 * buf_idx + 12];
+    out[buf_idx + 13 * pitch_out] = in[20 * buf_idx + 13];
+    out[buf_idx + 14 * pitch_out] = in[20 * buf_idx + 14];
+    out[buf_idx + 15 * pitch_out] = in[20 * buf_idx + 15];
+    out[buf_idx + 16 * pitch_out] = in[20 * buf_idx + 16];
+    out[buf_idx + 17 * pitch_out] = in[20 * buf_idx + 17];
+    out[buf_idx + 18 * pitch_out] = in[20 * buf_idx + 18];
+    out[buf_idx + 19 * pitch_out] = in[20 * buf_idx + 19];
+
+
+    }
+
+void gpu_exchange_ghosts_copy_particlenlist_buf(unsigned int n_recv,
+                                            const Scalar* d_particlenlist_recvbuf,
+                                            Scalar* d_particlenlist,
+                                            unsigned int pitch_out)
+    {
+    assert(d_particlenlist_recvbuf);
+    assert(d_particlenlist);
+
+    unsigned int block_size = 256;
+    unsigned int n_blocks = n_recv / block_size + 1;
+    hipLaunchKernelGGL(gpu_unpack_particlenlist_kernel,
+                       dim3(n_blocks),
+                       dim3(block_size),
+                       0,
+                       0,
+                       n_recv,
+                       d_particlenlist_recvbuf,
+                       d_particlenlistl,
+                       pitch_out);
+    }
+
 
 template<class members_t, class ranks_t, class group_element_t>
 __global__ void gpu_unpack_groups_kernel(unsigned int nrecv,

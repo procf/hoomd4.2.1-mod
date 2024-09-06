@@ -1,8 +1,6 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-###### Modified by Rheoinformatic ##~ [RHEOINF] ######
-
 """Define quantities that vary over the simulation.
 
 A `Variant` object represents a scalar function of the time step. Some
@@ -241,114 +239,6 @@ class Power(_hoomd.VariantPower, Variant):
         _hoomd.VariantPower.__init__(self, A, B, power, t_start, t_ramp)
 
     __eq__ = Variant._private_eq
-
-
-##~ add Oscillatory [RHEOINF]
-class Oscillatory(_hoomd.VariantOscillatory, Variant):
-    """Oscillating linear(?) ramps.
-
-    Args:
-        A (float): The first value.
-        t_start (int): The start time step.
-        t_ramp (int): The length of the ramp.
-
-    `Oscillatory` holds the value *A* until time *t_start*.
-    Then it ramps (linearly?) over *t_ramp* steps.
-    Presumably it then reversed and `Oscillatory` repeats this cycle indefinitely. (to be confirmed)
-
-    .. rubric:: Example:
-
-    .. code-block:: python
-
-            variant = hoomd.variant.Oscillatory(A=vinf,
-                                          B=sim.timestep,
-                                          t_ramp=N_ramp_timesteps)
-
-    Attributes:
-        A (float): The first value.
-        t_start (int): The start time step.
-        t_ramp (int): The length of the ramp.
-    """
-    _eq_attrs = ("A", "t_start", "t_ramp")
-
-    def __init__(self, A, t_start, t_ramp):
-        Variant.__init__(self)
-        _hoomd.VariantOscillatory.__init__(self, A, t_start, t_ramp)
-
-    __eq__ = Variant._private_eq
-##~
-
-
-##~ add Sinusoid [RHEOINF]
-class Sinusoid(_hoomd.VariantSinusoid, Variant):
-    """Oscillating sinusoidal ramps.
-
-    Args:
-        A (float): The first value.
-        t_start (int): The start time step.
-        omega (float): The frequency of the sinusoid.
-
-    `Sinusoid` holds the value *A* until time *t_start*.
-    Then it ramps over a sinusoidal frequency over *t_ramp* steps.
-    Presumably it then reversed and `Sinusoid` repeats this cycle indefinitely. (to be confirmed)
-
-    .. rubric:: Example:
-
-    .. code-block:: python
-
-            variant = hoomd.variant.Sinusoid(A=vinf,
-                                          B=sim.timestep,
-                                          omega=omega*dt_Integration)
-
-    Attributes:
-        A (float): The first value.
-        t_start (int): The start time step.
-        omega (float): The frequency of the sinusoid.
-    """
-    _eq_attrs = ("value", "t_start", "omega")
-
-    def __init__(self, value, t_start, omega):
-        Variant.__init__(self)
-        _hoomd.VariantSinusoid.__init__(self, value, t_start, omega)
-
-    __eq__ = Variant._private_eq
-##~
-
-
-##~ add Cosinusoid [RHEOINF]
-class Cosinusoid(_hoomd.VariantCosinusoid, Variant):
-    """Oscillating cosinusoidal ramps.
-    
-    Args:
-        A (float): The first value.
-        t_start (int): The start time step.
-        omega (float): The frequency of the cosinusoid.
-
-    `Sinusoid` holds the value *A* until time *t_start*.
-    Then it ramps over a cosinusoidal frequency over *t_ramp* steps.
-    Presumably it then reversed and `Cosinusoid` repeats this cycle indefinitely. (to be confirmed)
-
-    .. rubric:: Example:
-    
-    .. code-block:: python
-    
-            variant = hoomd.variant.Cosinusoid(A=vinf,
-                                          B=sim.timestep,
-                                          omega=omega*dt_Integration)
-    
-    Attributes:
-        A (float): The first value.
-        t_start (int): The start time step.
-        omega (float): The frequency of the cosinusoid.
-    """
-    _eq_attrs = ("value", "t_start", "omega")
-
-    def __init__(self, value, t_start, omega):
-        Variant.__init__(self)
-        _hoomd.VariantCosinusoid.__init__(self, value, t_start, omega)
-
-    __eq__ = Variant._private_eq
-##~
 
 
 variant_like = typing.Union[Variant, float]

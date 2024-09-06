@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
-
 #ifndef __PAIR_EVALUATOR_REACTION_FIELD_H__
 #define __PAIR_EVALUATOR_REACTION_FIELD_H__
 
@@ -87,30 +85,14 @@ class EvaluatorPairReactionField
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
-        \param _radcontact the sum of the interacting particle radii [RHEOINF]
-        \param _pair_typeids the typeIDs of the interacting particles [RHEOINF]
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairReactionField(Scalar _rsq, Scalar _radcontact, unsigned int _pair_typeids[2], Scalar _rcutsq, const param_type& _params) //~ add radcontact, pair_typeIDs [RHEOINF]
-        : rsq(_rsq), radcontact(_radcontact), rcutsq(_rcutsq), epsilon(_params.eps), epsrf(_params.eps_rf), //~ add radcontact [RHEOINF] 
+    DEVICE EvaluatorPairReactionField(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+        : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.eps), epsrf(_params.eps_rf),
           use_charge(_params.use_charge), qiqj(1.0)
         {
-        typei = _pair_typeids[0]; //~ add typei [RHEOINF]
-        typej = _pair_typeids[1]; //~ add typej [RHEOINF] 
         }
-        
-    //!~ add diameter [RHEOINF] 
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-    //~
 
     //! ReactionField uses charge
     DEVICE static bool needsCharge()
@@ -195,10 +177,6 @@ class EvaluatorPairReactionField
 
     protected:
     Scalar rsq;      //!< Stored rsq from the constructor
-    Scalar radcontact;//!< Stored contact-distance from the constructor [RHEOINF]
-    unsigned int pair_typeids;//!< Stored pair typeIDs from the constructor [RHEOINF]
-    unsigned int typei;//!<~ Stored typeID of particle i from the constructor [RHEOINF]
-    unsigned int typej;//!<~ Stored typeID of particle j from the constructor [RHEOINF]
     Scalar rcutsq;   //!< Stored rcutsq from the constructor
     Scalar epsilon;  //!< epsilon parameter extracted from the params passed to the constructor
     Scalar epsrf;    //!< epsilon_rf parameter extracted from the params passed to the constructor

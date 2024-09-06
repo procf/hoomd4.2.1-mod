@@ -462,17 +462,6 @@ template<unsigned int ndim> class EvaluatorPairALJ
         return true;
         }
 
-    //! don't need diameter
-    HOSTDEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    HOSTDEVICE void setDiameter(Scalar di, Scalar dj) { }
-    
     //! Whether pair potential requires charges
     HOSTDEVICE static bool needsCharge()
         {

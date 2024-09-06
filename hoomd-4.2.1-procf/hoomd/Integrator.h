@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
@@ -17,7 +17,6 @@
 #include <pybind11/pybind11.h>
 #include <string>
 #include <vector>
-#include "Variant.h" //~ add Variant [RHEOINF]
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
@@ -64,7 +63,7 @@ class PYBIND11_EXPORT Integrator : public Updater
     {
     public:
     /// Constructor
-    Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, std::shared_ptr<Variant> vinf); //~ add vinf [RHEOINF]
+    Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar shear_rate); //~ add shear rate [PROCF2023]
 
     /// Destructor
     virtual ~Integrator();
@@ -102,26 +101,10 @@ class PYBIND11_EXPORT Integrator : public Updater
     /// Return the timestep
     Scalar getDeltaT();
 
-    //~ add shear rate and vinf [RHEOINF]
-    /// Change the shear rate
-    void setSR(Scalar);
-
-    /// Return the shear rate
+    //~ Return the shear rate [PROCF2023]
+    virtual void setSR(Scalar);
     Scalar getSR();
-
-    /// Set the flow velocity
-    void setVinf(std::shared_ptr<Variant> vinf)
-        {
-        m_vinf = vinf;
-        }
-
-    /// Get the flow velocity
-    std::shared_ptr<Variant> getVinf()
-        {
-        return m_vinf;
-        }
     //~
-
 
     /// Update the number of degrees of freedom for a group
     /** @param group Group to set the degrees of freedom for.
@@ -204,13 +187,9 @@ class PYBIND11_EXPORT Integrator : public Updater
     /// The step size
     Scalar m_deltaT;
 
-    //~ add vinf and shear rate [RHEOINF]
-    /// The flow velcoity
-    std::shared_ptr<Variant> m_vinf;
-
-    /// The shear rate
+    ///~ the flow velocity vinf AKA SR from the shear rate [PROCF2023]
     Scalar m_SR;
-    //~
+    ///~
 
     /// List of all the force computes
     std::vector<std::shared_ptr<ForceCompute>> m_forces;

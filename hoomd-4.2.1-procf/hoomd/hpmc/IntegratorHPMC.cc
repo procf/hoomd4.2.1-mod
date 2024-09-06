@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
-
 #include "IntegratorHPMC.h"
 
 #include "hoomd/VectorMath.h"
@@ -18,8 +16,8 @@ namespace hoomd
     {
 namespace hpmc
     {
-IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Variant> vinf) //~ add vinf [RHEOINF]
-    : Integrator(sysdef, 0.005, vinf), m_translation_move_probability(32768), m_nselect(4), //~ add vinf [RHEOINF]
+IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
+    : Integrator(sysdef, 0.005, 0.0), m_translation_move_probability(32768), m_nselect(4), //~ add 0.0 for SR default value
       m_nominal_width(1.0), m_extra_ghost_width(0), m_external_base(NULL), m_past_first_run(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMC" << endl;
@@ -241,7 +239,7 @@ void export_IntegratorHPMC(pybind11::module& m)
     {
     pybind11::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m,
                                                                                   "IntegratorHPMC")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Variant>>()) //~ add vinf [PROCF2023]
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setD", &IntegratorHPMC::setD)
         .def("setA", &IntegratorHPMC::setA)
         .def("setTranslationMoveProbability", &IntegratorHPMC::setTranslationMoveProbability)

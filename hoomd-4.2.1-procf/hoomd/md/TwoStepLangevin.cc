@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 #include "TwoStepLangevin.h"
 #include "hoomd/RNGIdentifiers.h"
@@ -75,7 +75,10 @@ void TwoStepLangevin::integrateStepOne(uint64_t timestep)
         h_pos.data[j].z += dz;
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place
+        int img0 = h_image.data[j].y; //~ get old y-velocity [PROCF2023]
         box.wrap(h_pos.data[j], h_image.data[j]);
+        img0 -= h_image.data[j].y; //~ subtract new y-velocity [PROCF2023]
+        h_vel.data[j].x += (img0 * this->m_SR);//~ m_SR AKA m_vinf //~ add shear rate [PROCF2023]
 
         h_vel.data[j].x += Scalar(1.0 / 2.0) * h_accel.data[j].x * m_deltaT;
         h_vel.data[j].y += Scalar(1.0 / 2.0) * h_accel.data[j].y * m_deltaT;
@@ -217,11 +220,6 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
                                  access_location::host,
                                  access_mode::readwrite);
-    //~ access diameter [RHEOINF]
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                   access_location::host,
-                                   access_mode::read);
-    //~
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
@@ -252,10 +250,10 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
     uint16_t seed = m_sysdef->getSeed();
 
-    //~ add shear rate and box dims [RHEOINF]
-    Scalar shear_rate = this->m_SR;
-    const BoxDim& box_global = m_pdata->getGlobalBox();
-    Scalar Ly = box_global.getL().y;
+    //~ get global box and calculate shear [PROCF2023]
+    const BoxDim& global_box = m_pdata->getGlobalBox();
+    Scalar L_Y = global_box.getL().y;
+    Scalar shear_rate = this->m_SR/L_Y; //~ m_SR AKA m_vinf
     //~
 
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
@@ -274,27 +272,15 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
         Scalar ry = uniform(rng);
         Scalar rz = uniform(rng);
 
-        //~ add alpha [RHEOINF]
         Scalar gamma;
-        if (m_use_alpha)
-            gamma = m_alpha * h_diameter.data[j];
-        else
-            {
-            unsigned int type = __scalar_as_int(h_pos.data[j].w);
-            gamma = h_gamma.data[type];
-            }
-
-        //Scalar gamma;
-        //unsigned int type = __scalar_as_int(h_pos.data[j].w);
-        //gamma = h_gamma.data[type];
-        //~
+        unsigned int type = __scalar_as_int(h_pos.data[j].w);
+        gamma = h_gamma.data[type];
 
         // compute the bd force
         Scalar coeff = fast::sqrt(Scalar(6.0) * gamma * currentTemp / m_deltaT);
         if (m_noiseless_t)
             coeff = Scalar(0.0);
-        Scalar vinf = shear_rate / Ly * h_pos.data[j].y; //~ add vinf [RHEOINF]
-        Scalar bd_fx = rx * coeff - gamma * (h_vel.data[j].x-vinf); //~ add vinf in flow direction [RHEOINF]
+        Scalar bd_fx = rx * coeff - gamma * (h_vel.data[j].x-h_pos.data[j].y*shear_rate); //~ add shear_rate [PROCF2023]
         Scalar bd_fy = ry * coeff - gamma * h_vel.data[j].y;
         Scalar bd_fz = rz * coeff - gamma * h_vel.data[j].z;
 

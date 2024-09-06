@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 #ifndef __PAIR_EVALUATOR_DPD_H__
 #define __PAIR_EVALUATOR_DPD_H__
@@ -133,16 +133,12 @@ class EvaluatorPairDPDThermoDPD
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
-        \param _radcontact the sum of the interacting particle radii [RHEOINF]
-        \param _pair_typeids the typeIDs of the interacting particles [RHEOINF] 
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairDPDThermoDPD(Scalar _rsq, Scalar _radcontact, unsigned int _pair_typeids[2], Scalar _rcutsq, const param_type& _params) //~add radcontact, pair_typeIDs [RHEOINF]
-        : rsq(_rsq), radcontact(_radcontact), rcutsq(_rcutsq), a(_params.A), gamma(_params.gamma) //~ add radcontact [RHEOINF]
+    DEVICE EvaluatorPairDPDThermoDPD(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+        : rsq(_rsq), rcutsq(_rcutsq), a(_params.A), gamma(_params.gamma)
         {
-        typei = _pair_typeids[0]; //~ add typei [RHEOINF]
-        typej = _pair_typeids[1]; //~ add typej [RHEOINF]
         }
 
     //! Set i and j, (particle tags), and the timestep
@@ -172,18 +168,6 @@ class EvaluatorPairDPDThermoDPD
         {
         m_T = Temp;
         }
-    
-    //!~ add diameter [RHEOINF]
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-    //~
 
     //! Yukawa doesn't use charge
     DEVICE static bool needsCharge()
@@ -229,24 +213,24 @@ class EvaluatorPairDPDThermoDPD
     /*! \param force_divr Output parameter to write the computed force divided by r.
         \param force_divr_cons Output parameter to write the computed conservative force divided by
        r.
-       \param cons_divr Output parameter to write the computed conserivative force component of the virial tensor [RHEOINF]
-       \param disp_divr Output parameter to write the computed dissipative force component of the virial tensor [RHEOINF]
-       \param rand_divr Output parameter to write the computed random force component of the virial tensor [RHEOINF]
-       \param sq_divr Output parameter to write the computed short-range lubrication (squeezing) force component of the virial tensor [RHEOINF]
-       \param cont_divr Output parameter to write the computed contact force component of the virial tensor [RHEOINF]
+       \param cons_divr Output parameter to write the computed conserivative force component of the virial tensor [PROCF2023]
+       \param disp_divr Output parameter to write the computed dissipative force component of the virial tensor [PROCF2023]
+       \param rand_divr Output parameter to write the computed random force component of the virial tensor [PROCF2023]
+       \param sq_divr Output parameter to write the computed short-range lubrication (squeezing) force component of the virial tensor [PROCF2023]
+       \param cont_divr Output parameter to write the computed contact force component of the virial tensor [PROCF2023]
        \param pair_eng Output parameter to write the computed pair energy \param energy_shift
        Ignored. DPD always goes to 0 at the cutoff. \note There is no need to check if rsq < rcutsq
        in this method. Cutoff tests are performed in PotentialPair.
 
         \note The conservative part \b only must be output to \a force_divr_cons so that the virial
        may be computed correctly.
-       (However this should include dissipation and lubrication forces) [RHEOINF]
+       (However this should include dissipation and lubrication forces) [PROCF2023]
 
         \return True if they are evaluated or false if they are not because we are beyond the cutoff
     */
     DEVICE bool evalForceEnergyThermo(Scalar& force_divr,
                                       Scalar& force_divr_cons,
-                                      //~ add virial_ind terms [RHEOINF]
+                                      //~ add virial_ind terms [PROCF2023]
                                       Scalar& cons_divr,
                                       Scalar& disp_divr,
                                       Scalar& rand_divr,
@@ -288,34 +272,34 @@ class EvaluatorPairDPDThermoDPD
 
             // conservative dpd
             // force_divr = FDIV(a,r)*(Scalar(1.0) - r*rcutinv);
-            //force_divr = a * (rinv - rcutinv); //~ comment out [RHEOINF]
-            //~ rename force_divr -> cons_divr [RHEOINF]
+            //force_divr = a * (rinv - rcutinv); //~ comment out [PROCF2023]
+            //~ rename force_divr -> cons_divr [PROCF2023]
             cons_divr = a * (rinv - rcutinv); 
 	    //~
 
-            //~ turn off conservative force only [RHEOINF]
+            //~ turn off conservative force only [PROCF2023]
             //  conservative force only
             //force_divr_cons = force_divr;
             //~
 
             //  Drag Term
             //force_divr -= gamma * m_dot * (rinv - rcutinv) * (rinv - rcutinv);
-            //~ comment out [RHEOINF]
-            //~ rename drag term "disp_divr" and move minus sign from "-=" to inside the calc [RHEOINF]
+            //~ comment out [PROCF2023]
+            //~ rename drag term "disp_divr" and move minus sign from "-=" to inside the calc [PROCF2023]
             disp_divr = -gamma * m_dot * (rinv - rcutinv) * (rinv - rcutinv);
 	    //~
 
 
             //  Random Force
-            //~ comment out [RHEOINF]
+            //~ comment out [PROCF2023]
             /*force_divr
                 += fast::rsqrt(m_deltaT / (m_T * gamma * Scalar(6.0))) * (rinv - rcutinv) * alpha;*/
-	    //~ separate out random force "rand_divr" [RHEOINF]
+	    //~ separate out random force "rand_divr" [PROCF2023]
             rand_divr 
                 = fast::rsqrt(m_deltaT / (m_T * gamma * Scalar(6.0))) * (rinv - rcutinv) * alpha;
 	    //~
 
-            //~ define the total force (force_divr) and the force WITHOUT random or contact (force_divr_cons) [RHEOINF]
+            //~ define the total force (force_divr) and the force WITHOUT random or contact (force_divr_cons) [PROCF2023]
             force_divr_cons = cons_divr + disp_divr + sq_divr;
             force_divr = force_divr_cons + rand_divr + cont_divr;
 	    //~
@@ -356,10 +340,6 @@ class EvaluatorPairDPDThermoDPD
 
     protected:
     Scalar rsq;          //!< Stored rsq from the constructor
-    Scalar radcontact;       //!< Stored contact-distance from the constructor [RHEOINF]
-    unsigned int pair_typeids;    //!< Stored pair typeIDs from the constructor [RHEOINF]
-    unsigned int typei;           //!<~ Stored typeID of particle i from the constructor [RHEOINF]
-    unsigned int typej;           //!<~ Stored typeID of particle j from the constructor [RHEOINF]
     Scalar rcutsq;       //!< Stored rcutsq from the constructor
     Scalar a;            //!< a parameter for potential extracted from params by constructor
     Scalar gamma;        //!< gamma parameter for potential extracted from params by constructor

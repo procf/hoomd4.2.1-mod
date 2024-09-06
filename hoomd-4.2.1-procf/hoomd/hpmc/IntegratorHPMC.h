@@ -1,8 +1,6 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
-
 // inclusion guard
 #ifndef _INTEGRATOR_HPMC_H_
 #define _INTEGRATOR_HPMC_H_
@@ -201,7 +199,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     {
     public:
     //! Constructor
-    IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Variant> vinf); //~ add vinf [RHEOINF]
+    IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef);
 
     virtual ~IntegratorHPMC();
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 /*! \file Communicator.h
     \brief Defines the Communicator class
@@ -74,7 +74,8 @@ struct comm_flag
         reverse_net_force, //! Communicate net force on ghost particles. Added by Vyas
         net_torque,        //! Communicate net torque
         net_virial,         //! Communicate net virial
-        net_virial_ind     //~! Communicate net virial components [RHEOINF]
+        net_virial_ind,     //~! Communicate net virial components [PROCF2023]
+        particle_n_list
         };
     };
 
@@ -391,7 +392,7 @@ class PYBIND11_EXPORT Communicator
 
     void addMeshDefinition(std::shared_ptr<MeshDefinition> meshdef);
 
-    //!~ add shear rate [RHEOINF]
+    //~ set shear rate [PROCF2023] 
     virtual void setSR(Scalar shear_rate)
         {
         m_SR = shear_rate;
@@ -399,7 +400,7 @@ class PYBIND11_EXPORT Communicator
     //~
 
     protected:
-        Scalar m_SR; //~ add shear rate [RHEOINF]
+	Scalar m_SR; //~ add shear rate [PROCF2023]
     //! Helper class to perform the communication tasks related to bonded groups
     template<class group_data> class GroupCommunicator
         {
@@ -512,8 +513,10 @@ class PYBIND11_EXPORT Communicator
     GlobalVector<Scalar4> m_nettorque_copybuf;   //!< Buffer for net torque
     GlobalVector<Scalar> m_netvirial_copybuf;    //!< Buffer for net virial
     GlobalVector<Scalar> m_netvirial_recvbuf;    //!< Buffer for net virial (receive)
-    GlobalVector<Scalar> m_netvirial_ind_copybuf;//~!< Buffer for net virial_ind [RHEOINF] 
-    GlobalVector<Scalar> m_netvirial_ind_recvbuf;//~!< Buffer for net virial_ind (receive) [RHEOINF] 
+    GlobalVector<Scalar> m_netvirial_ind_copybuf;//~!< Buffer for net virial_ind [PROCF2023] 
+    GlobalVector<Scalar> m_netvirial_ind_recvbuf;//~!< Buffer for net virial_ind (receive) [PROCF2023] 
+    GlobalVector<Scalar> m_particlenlist_copybuf;    //
+    GlobalVector<Scalar> m_particlenlist_recvbuf; //(Paniz)
 
     GlobalVector<unsigned int>
         m_copy_ghosts[6]; //!< Per-direction list of indices of particles to send as ghosts

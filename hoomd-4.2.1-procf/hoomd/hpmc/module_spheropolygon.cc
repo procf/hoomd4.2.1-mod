@@ -1,13 +1,10 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
-
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "../Variant.h" //~ add vinf [RHEOINF]
 
 #include "ComputeSDF.h"
 #include "ShapeSpheropolygon.h"
@@ -35,13 +32,7 @@ namespace detail
 //! Export the base HPMCMono integrators
 void export_spheropolygon(pybind11::module& m)
     {
-    //~ Update the function calls to pass both required arguments [RHEOINF]
-    m.def("create_IntegratorHPMCMonoSpheropolygon", [](std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Variant> vinf)
-    {
-        return std::make_shared<IntegratorHPMCMono<ShapeSpheropolygon>>(sysdef, vinf);
-    });
-    //export_IntegratorHPMCMono<ShapeSpheropolygon>(m, "IntegratorHPMCMonoSpheropolygon");
-    //~
+    export_IntegratorHPMCMono<ShapeSpheropolygon>(m, "IntegratorHPMCMonoSpheropolygon");
     export_ComputeFreeVolume<ShapeSpheropolygon>(m, "ComputeFreeVolumeSpheropolygon");
     export_ComputeSDF<ShapeSpheropolygon>(m, "ComputeSDFConvexSpheropolygon");
     export_UpdaterMuVT<ShapeSpheropolygon>(m, "UpdaterMuVTConvexSpheropolygon");

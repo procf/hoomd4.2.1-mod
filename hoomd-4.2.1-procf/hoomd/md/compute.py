@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-########## Modified by Rheoinformatic ##~ [RHEOINF] ##########
+########## Modified by PRO-CF ##~ [PROCF2023] ##########
 
 """Compute properties of molecular dynamics simulations.
 
@@ -125,7 +125,7 @@ class ThermodynamicQuantities(Compute):
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.pressure_tensor
 
-    ##~ add access to virial_ind [RHEOINF]
+    ##~ add access to virial_ind [PROCF2023]
     @log(category='sequence', requires_run=True)
     def virial_ind_tensor(self):
         """Instantaneous "independent virial" (virial_ind) components of the 

@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 #include "TwoStepBD.h"
 #include "hoomd/HOOMDMath.h"
@@ -66,11 +66,6 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
-    //~ add diameter [RHEOINF]
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
-                                    access_location::host,
-                                    access_mode::read);
-    //~
 
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
@@ -88,12 +83,11 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                                    access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
-    const BoxDim& box_global = m_pdata->getGlobalBox(); //~ box_dims [RHEOINF]
+    const BoxDim& box_global = m_pdata->getGlobalBox(); //~ get global box [PROCF2023]
+
     uint16_t seed = m_sysdef->getSeed();
-    //~ add shear rate [RHEOINF]
-    Scalar shear_rate = this->m_SR;
-    //std::cout << shear_rate << std::endl;
-    //~
+
+    Scalar shear_rate = this->m_SR; //~ add shear rate [PROCF2023]
 
     // perform the first half step
     // r(t+deltaT) = r(t) + (Fc(t) + Fr)*deltaT/gamma
@@ -113,19 +107,9 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
         Scalar ry = uniform(rng);
         Scalar rz = uniform(rng);
 
-        //~ add alpha [RHEOINF]
         Scalar gamma;
-        if (m_use_alpha)
-            gamma = m_alpha * h_diameter.data[j];
-        else
-            {
-            unsigned int type = __scalar_as_int(h_pos.data[j].w);
-            gamma = h_gamma.data[type];
-            }
-
-        //unsigned int type = __scalar_as_int(h_pos.data[j].w);
-        //gamma = h_gamma.data[type];
-        //~
+        unsigned int type = __scalar_as_int(h_pos.data[j].w);
+        gamma = h_gamma.data[type];
 
         // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1
         // distribution it is not the dimensionality of the system
@@ -139,24 +123,25 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
         if (D < 3)
             Fr_z = Scalar(0.0);
 
-        Scalar vinf = shear_rate * h_pos.data[j].y / box_global.getL().y; //~ add vinf [RHEOINF]
+        //~ add shear rate [PROCF2023]
+        Scalar vinf = shear_rate * h_pos.data[j].y / box_global.getL().y;
+        //~
 
         // update position
-        h_pos.data[j].x += (h_net_force.data[j].x + Fr_x) * m_deltaT / gamma + vinf * m_deltaT; //~ add vinf in flow direction [RHEOINF]
+        h_pos.data[j].x += (h_net_force.data[j].x + Fr_x) * m_deltaT / gamma + vinf * m_deltaT; //~ include flow velocity [PROCF2023]
         h_pos.data[j].y += (h_net_force.data[j].y + Fr_y) * m_deltaT / gamma;
         h_pos.data[j].z += (h_net_force.data[j].z + Fr_z) * m_deltaT / gamma;
 
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place
-        //~ and update velocity if crossing y-boundary [RHEOINF]
-        int img0 = h_image.data[j].y; //~ get y-image [RHEOINF]
+        int img0 = h_image.data[j].y; //~ get old y-velocity [PROCF2023]
         box.wrap(h_pos.data[j], h_image.data[j]);
-        img0 -= h_image.data[j].y; //~ update with current velocity [RHEOINF]
-        vinf += (img0 * shear_rate); //~ update velocity [RHEOINF]
+        img0 -= h_image.data[j].y; //~ subtract new y-velocity [PROCF2023]
+        vinf += (img0 * shear_rate); //~ add shear rate [PROCF2023]
 
         if (m_noiseless_t)
             {
-            h_vel.data[j].x = h_net_force.data[j].x / gamma + vinf; //~ add vinf [RHEOINF]
+            h_vel.data[j].x = h_net_force.data[j].x / gamma + vinf; //~ include flow velocity [PROCF2023]
             h_vel.data[j].y = h_net_force.data[j].y / gamma;
             if (D > 2)
                 h_vel.data[j].z = h_net_force.data[j].z / gamma;

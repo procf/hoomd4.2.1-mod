@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 #include "FIREEnergyMinimizer.h"
 
@@ -20,8 +20,8 @@ namespace md
 
     \post The method is constructed with the given particle data.
 */
-FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysdef, Scalar dt, std::shared_ptr<Variant> vinf) //~ add vinf [RHEOINF]
-    : IntegratorTwoStep(sysdef, dt, vinf), m_nmin(5), m_finc(Scalar(1.1)), m_fdec(Scalar(0.5)), //~ add vinf [RHEOINF]
+FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysdef, Scalar dt, Scalar shear_rate) //~ add shear rate [PROCF2023]
+    : IntegratorTwoStep(sysdef, dt, shear_rate), m_nmin(5), m_finc(Scalar(1.1)), m_fdec(Scalar(0.5)), //~ add shear rate [PROCF2023]
       m_alpha_start(Scalar(0.1)), m_falpha(Scalar(0.99)), m_ftol(Scalar(1e-1)),
       m_wtol(Scalar(1e-1)), m_etol(Scalar(1e-3)), m_energy_total(Scalar(0.0)),
       m_old_energy(Scalar(0.0)), m_deltaT_max(dt), m_deltaT_set(dt / Scalar(10.0)),
@@ -478,7 +478,7 @@ void export_FIREEnergyMinimizer(pybind11::module& m)
     pybind11::class_<FIREEnergyMinimizer, IntegratorTwoStep, std::shared_ptr<FIREEnergyMinimizer>>(
         m,
         "FIREEnergyMinimizer")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, std::shared_ptr<Variant>>()) //~ add vinf [RHEOINF]
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, Scalar>()) //~ add Scalar for SR [PROCF2023]
         .def("reset", &FIREEnergyMinimizer::reset)
         .def_property_readonly("converged", &FIREEnergyMinimizer::hasConverged)
         .def_property_readonly("energy", &FIREEnergyMinimizer::getEnergy)

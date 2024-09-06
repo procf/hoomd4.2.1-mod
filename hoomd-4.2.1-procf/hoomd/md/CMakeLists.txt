@@ -1,4 +1,4 @@
-### Modified by Rheoinformatic #[RHEOINF] ###
+### Modified by PRO-CF #[PROCF2023] ###
 
 
 set(_md_sources module-md.cc
@@ -95,7 +95,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairDLVO.h
                 EvaluatorPairDPDThermoLJ.h
                 EvaluatorPairDPDThermoDPD.h
-                EvaluatorPairDPDThermoDPDMorse.h #[RHEOINF]
+                EvaluatorPairDPDThermoDPDMorse.h #[PROCF2023]
                 EvaluatorPairEwald.h
                 EvaluatorPairForceShiftedLJ.h
                 EvaluatorPairGauss.h
@@ -108,7 +108,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairExpandedMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
-                EvaluatorPairMorseRepulse.h #[RHEOINF]
                 EvaluatorPairOPP.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
@@ -133,7 +132,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
-                Lifetime.h #[RHEOINF]
+                Lifetime.h #[PROCF2023]
                 ManifoldZCylinder.h
                 ManifoldDiamond.h
                 ManifoldEllipsoid.h
@@ -453,7 +452,7 @@ foreach(_evaluator ${_external_evaluators})
     endif()
 endforeach()
 
-set(_wall_evaluators LJ Yukawa ForceShiftedLJ Mie Gauss Morse) #add MorseRepulse if you want it to be a wall evaluator? [RHEOINF]
+set(_wall_evaluators LJ Yukawa ForceShiftedLJ Mie Gauss Morse)
 
 foreach(_evaluator ${_wall_evaluators})
     configure_file(export_PotentialExternalWall.cc.inc
@@ -476,7 +475,7 @@ foreach(_evaluator ${_wall_evaluators})
     endif()
 endforeach()
 
-set(_dpdthermo_evaluators DPD LJ DPDMorse) # add DPDMorse [RHEOINF]
+set(_dpdthermo_evaluators DPD LJ DPDMorse) # add DPDMorse [PROCF2023]
 
 foreach(_evaluator ${_dpdthermo_evaluators})
     configure_file(export_PotentialPairDPDThermo.cc.inc
@@ -509,7 +508,6 @@ set(_pair_evaluators Buckingham
                      Yukawa
                      Ewald
                      Morse
-                     MorseRepulse #[RHEOINF]
                      ConservativeDPD
                      Moliere
                      ZBL

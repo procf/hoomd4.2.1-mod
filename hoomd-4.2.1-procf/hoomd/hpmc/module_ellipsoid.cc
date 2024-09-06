@@ -1,13 +1,10 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
-
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "../Variant.h" //~ add vinf [RHEOINF]
 
 #include "ComputeSDF.h"
 #include "ShapeEllipsoid.h"
@@ -38,13 +35,7 @@ namespace detail
 //! Export the base HPMCMono integrators
 void export_ellipsoid(pybind11::module& m)
     {
-    //~ Update the function calls to pass both required arguments [RHEOINF]
-    m.def("create_IntegratorHPMCMonoEllipsoid", [](std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Variant> vinf)
-    {
-        return std::make_shared<IntegratorHPMCMono<ShapeEllipsoid>>(sysdef, vinf);
-    });
-    //export_IntegratorHPMCMono<ShapeEllipsoid>(m, "IntegratorHPMCMonoEllipsoid");
-    //~
+    export_IntegratorHPMCMono<ShapeEllipsoid>(m, "IntegratorHPMCMonoEllipsoid");
     export_ComputeFreeVolume<ShapeEllipsoid>(m, "ComputeFreeVolumeEllipsoid");
     export_ComputeSDF<ShapeEllipsoid>(m, "ComputeSDFEllipsoid");
     export_UpdaterMuVT<ShapeEllipsoid>(m, "UpdaterMuVTEllipsoid");

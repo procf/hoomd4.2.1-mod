@@ -1,4 +1,4 @@
-//~ ########## Created by the Rheoinformatic research group ##########
+//~ ########## Created by the PRO-CF research group ##########
 //~ HOOMD-blue:
 // Copyright (c) 2009-2022 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
@@ -19,7 +19,6 @@
 #include "hoomd/VectorMath.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
-
 
 /*! \file EvaluatorPairDPDMorseThermo.h
  \brief Defines the pair evaluator class for different particle interactions:
@@ -76,13 +75,12 @@ namespace md
     - 2 \cdot \exp(-\alpha  \cdot \left( (r_{ij} - a_{i} - a_{j} \right) - r_{\mathrm{0}}) \right)\f]
 
 
-    The Morse potential does not need charge. Nine parameters are specified and
+    The Morse potential does not need charge. Eight parameters are specified and
     stored in a Scalar. \a A0 is placed in \a params.A0, \a D0 is placed in \a params.D0, 
     \a alpha is placed in \a params.alpha, \a r0 is placed in \a params.r0, 
     \a eta is placed in \a params.eta, \a f_contact is placed in \a params.f_contact, 
     \a a1 is placed in \a params.a1, \a a2 is placed in \a params.a2, 
-    \a rcut is placed in \a params.rcut
-    and \a scaled_D0 is placed in \a params.scaled_D0
+    and \a rcut is placed in \a params.rcut
 
 
     The thermostat potential EvaluatorPairDPDThermoMorse::evalForceEnergyThermo evaluates includes 
@@ -123,13 +121,11 @@ namespace md
     F_{\mathrm{contact}}(r_{ij}) = 0
 
 
-    [B] If both particles have a non-zero radius AND their position causes the radii to overlap AND f_contact!=0
+    [B] If both particles have a non-zero radius AND their position causes the radii to overlap
     EvaluatorPairDPDThermoMorse::evalForceEnergyThermo evaluates the contact force function and
     F_{\mathrm{C}}(r) = 0
     F_{\mathrm{Morse}}(r_{ij}) = 0
 
-    If f_contact is 0, then either Morse (if the bond-disoociation energy D0 is non-zero) or conservative force
-    (if D0=0) is used to resolve overlaps
 
     [C] If both particles have a non-zero radius AND the bond-dissociation energy (D0) is non-zero
     EvaluatorPairDPDThermoMorse::evalForceEnergyThermo evaluates the Morse function and
@@ -137,13 +133,12 @@ namespace md
     F_{\mathrm{contact}}(r_{ij}) = 0
  
  
-    The Thermostat potential does not need charge. Nine parameters are specified and
+    The Thermostat potential does not need charge. Eight parameters are specified and
     stored in a Scalar. \a A0 is placed in \a params.A0, \a D0 is placed in \a params.D0, 
     \a alpha is placed in \a params.alpha, \a r0 is placed in \a params.r0, 
     \a eta is placed in \a params.eta, \a f_contact is placed in \a params.f_contact, 
     \a a1 is placed in \a params.a1, \a a2 is placed in \a params.a2, 
-    \a rcut is placed in \a params.rcut
-    and \a scaled_D0 is placed in \a params.scaled_D0
+    and \a rcut is placed in \a params.rcut
 
     These are related to the standard lj parameters sigma and epsilon by:
     - \a A0 = \f$ A \f$
@@ -166,8 +161,6 @@ class EvaluatorPairDPDThermoDPDMorse
 	Scalar a1;
 	Scalar a2;
 	Scalar rcut;
-	bool scaled_D0;
-        Scalar sys_kT;
 
         DEVICE void load_shared(char*& ptr, unsigned int& available_bytes) { }
 
@@ -178,9 +171,9 @@ class EvaluatorPairDPDThermoDPDMorse
         void set_memory_hints() const { }
 #endif
 #ifndef __HIPCC__
-        param_type() : A0(0), gamma(0), D0(0), alpha(0), r0(0), eta(0), f_contact(0), a1(0), a2(0), rcut(0), scaled_D0(false), sys_kT(0) { }
+        param_type() : A0(0), gamma(0), D0(0), alpha(0), r0(0), eta(0), f_contact(0), a1(0), a2(0) { }
 
-        param_type(pybind11::dict v, bool managed = false, bool scaled_D0 = false)
+        param_type(pybind11::dict v, bool managed = false)
             {
 	    A0 = v["A0"].cast<Scalar>();
 	    gamma = v["gamma"].cast<Scalar>();
@@ -192,8 +185,6 @@ class EvaluatorPairDPDThermoDPDMorse
 	    a1 = v["a1"].cast<Scalar>();
 	    a2 = v["a2"].cast<Scalar>();
 	    rcut = v["rcut"].cast<Scalar>();
-	    this->scaled_D0 = scaled_D0;
-            sys_kT = v["sys_kT"].cast<Scalar>();
             }
 
         pybind11::dict asDict()
@@ -209,8 +200,6 @@ class EvaluatorPairDPDThermoDPDMorse
 	    v["a1"] = a1;
 	    v["a2"] = a2;
 	    v["rcut"] = rcut;
-	    v["scaled_D0"] = scaled_D0;
-	    v["sys_kT"] = sys_kT;
             return v;
             }
 #endif
@@ -223,17 +212,12 @@ class EvaluatorPairDPDThermoDPDMorse
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
-        \param _pair_typeids the typeIDs of the interacting particles [RHEOINF]
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairDPDThermoDPDMorse(Scalar _rsq, Scalar _radsum, unsigned int _pair_typeids[2], Scalar _rcutsq, const param_type& _params) //~ add radsum, pair_typeIDs [RHEOINF]
-        : rsq(_rsq), radsum(_radsum), rcutsq(_rcutsq), A0(_params.A0), gamma(_params.gamma), D0(_params.D0), alpha(_params.alpha), 
-	r0(_params.r0), eta(_params.eta), f_contact(_params.f_contact), a1(_params.a1), a2(_params.a2), rcut(_params.rcut), scaled_D0(_params.scaled_D0), sys_kT(_params.sys_kT) // add radsum, scaled_D0, kT [RHEOINF]
-        {
-        typei = _pair_typeids[0]; //~ add typei [RHEOINF]
-        typej = _pair_typeids[1]; //~ add typej [RHEOINF]  
-        }
+    DEVICE EvaluatorPairDPDThermoDPDMorse(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+        : rsq(_rsq), rcutsq(_rcutsq), A0(_params.A0), gamma(_params.gamma), D0(_params.D0), alpha(_params.alpha), 
+	r0(_params.r0), eta(_params.eta), f_contact(_params.f_contact), a1(_params.a1), a2(_params.a2), rcut(_params.rcut){ }
 
     //! Set i and j, (particle tags), and the timestep
     DEVICE void
@@ -262,23 +246,6 @@ class EvaluatorPairDPDThermoDPDMorse
         {
         m_T = Temp;
         }
-    
-    //~ add diameter [RHEOINF]
-    //~ NOTE: for some reason diameters are not passed to this file correctly... which is why we use radcontact instead
-    DEVICE static bool needsDiameter()
-        {
-        return false;
-        }
-    //! Accept the optional diameter values
-    /*! \param di Diameter of particle i
-        \param dj Diameter of particle j
-    */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
-    //    {
-    //    diameter_i = di;
-    //    diameter_j = dj;
-    //    }
-    //~
 
     //! DPDMorse doesn't use charge
     DEVICE static bool needsCharge()
@@ -302,27 +269,8 @@ class EvaluatorPairDPDThermoDPDMorse
     */
     DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
         {
-
-        //~ but remove solvent diameters (should be treated as zero) using typeid
-        //~ ASSUMING SOLVENTS WERE INITIALIZED WITH R_S=0.5 
-        if (typei == 0)
-          {
-          radsum -= Scalar(0.5);
-          }
-        if (typej == 0)
-          {
-          radsum -= Scalar(0.5);
-          }
-
-        //~ Scale attraction strength by particle size
-        if (scaled_D0)
-          {
-          D0 = D0 * (0.5*radsum);
-          }   
-        //~ 
-
+	Scalar radsum = a1 + a2;
         Scalar rinv = fast::rsqrt(rsq);
-        // convert to h_ij (surface-surface distance)
 	Scalar r = (Scalar(1.0) / rinv) - radsum;
 	//Scalar rcut = fast::sqrt(rcutsq) - radsum;
 	Scalar rcutinv = Scalar(1.0) / rcut;
@@ -330,8 +278,7 @@ class EvaluatorPairDPDThermoDPDMorse
         // compute the force divided by r in force_divr
         if(r < rcut)
 	   {
-	   if(typei == 0 || typej == 0) //~ switch to using typeID
-	   //if(a1 == Scalar(0.0) or a2 == Scalar(0.0))
+	   if(a1 == Scalar(0.0) or a2 == Scalar(0.0))
 	      {
 	      force_divr = A0 * w_factor * rinv;
 	      pair_eng = A0 * (rcut - r) - Scalar(1.0 / 2.0) * A0 * rcutinv * (rcut * rcut - r * r);
@@ -343,7 +290,7 @@ class EvaluatorPairDPDThermoDPDMorse
 	         Scalar Exp_factor = fast::exp(-alpha * (r - r0));
 	         pair_eng = D0 * Exp_factor * (Exp_factor - Scalar(2.0));
 	         force_divr = Scalar(2.0) * D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) * rinv;
-	         //~ energy shift is ignored: This was legacy from using the LJ potential as a template.
+		 //~ energy shift is ignored: DPD always goes to 0 at the cutoff. (discontinuities are avoided with contact force). This was legacy from using the LJ potential as a template.
 		 //~ if(energy_shift)
 		 //~   {
 		 //~   Scalar Exp_factor_cut = fast::exp(-alpha * (rcut - r0));
@@ -390,25 +337,8 @@ class EvaluatorPairDPDThermoDPDMorse
                                       Scalar& pair_eng,
                                       bool energy_shift)
         {
-
-        //~ but remove solvent diameters (should be treated as zero) using typeid
-        //~ ASSUMING SOLVENTS WERE INITIALIZED WITH R_S=0.5 
-        if (typei == 0)
-          {
-          radsum -= Scalar(0.5);
-          }
-        if (typej == 0)
-          {
-          radsum -= Scalar(0.5);
-          }
-
-        //~ Scale attraction strength by particle size
-        if (scaled_D0)
-          {
-          D0 = D0 * (0.5*radsum);
-          }
-        //~ 
-	
+	// get the sum of the particle radii
+	Scalar radsum = a1 + a2;
 	// get 1/r_ij
         Scalar rinv = fast::rsqrt(rsq);
 	// convert r_ij (center-center) to h_ij (surface-surface)
@@ -421,10 +351,8 @@ class EvaluatorPairDPDThermoDPDMorse
 	   Scalar w_factor = (Scalar(1.0) - r * rcutinv);
 
 	   // if at least one particle has a radius = 0 (solvent-solvent or solvent-colloid)
-	   if(typei == 0 || typej == 0) //~ switch to using typeID
-	   //if(a1 == Scalar(0.0) or a2 == Scalar(0.0))
+	   if(a1 == Scalar(0.0) or a2 == Scalar(0.0))
 	      {
-
 	      // conservative DPD
 	      cons_divr = A0 * w_factor * rinv;
 
@@ -461,41 +389,17 @@ class EvaluatorPairDPDThermoDPDMorse
 
 	   // if both particles do NOT both have radius = 0 (colloid-colloid)
 	   else
-	      { 
-
-	      Scalar w_factor = (Scalar(1.0) - r * rcutinv);
-              Scalar Exp_factor = fast::exp(-alpha * (r - r0));
+	      {
 
 	      // if particles overlap
+          
 	      if(r <= Scalar(0.0))
 	         {
-		 // resolve overlap with CONTACT FORCE, if a contact force is provided [RHEOINF]
-    		 if (f_contact != 0.0)
-                    {
-    	            cont_divr = f_contact * (Scalar(1.0) - r) * pow((Scalar(0.50)*radsum),3) * rinv;
-    	            }
-	         // if no contact force provided, resolve overlap with other forces [RHEOINF]
-	         else
-    	            {
-    	            // if D0 is provided, use this to calculate Morse repulsion [RHEOINF]
-    	            if (D0 != 0.0)
-        	       {
-        	       //Scalar Exp_factor = fast::exp(-alpha * (r - r0));
-        	       cons_divr = Scalar(2.0) * D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) * rinv;
-        	       pair_eng = D0 * Exp_factor * (Exp_factor - Scalar(2.0));
-        	       }
-    	            // if no D0 is provided use repulsion of D0=10*sys_kT
-                    // kT defaults to 0.1 but can be changed with the system
-                    else
-                       {
-                       Scalar repulse_D0 = 10*sys_kT;
-                       cons_divr = Scalar(2.0) * repulse_D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) * rinv;
-                       pair_eng = repulse_D0 * Exp_factor * (Exp_factor - Scalar(2.0));
-                       // use conservative force
-                       //force_divr = A0 * w_factor * rinv;
-                       //pair_eng = A0 * (rcut - r) - Scalar(1.0 / 2.0) * A0 * rcutinv * (rcut * rcut - r * r);
-        	       }
-    	            }
+		 // resolve overlap with Contact force
+	        cont_divr = f_contact * (Scalar(1.0) - r) * pow((Scalar(0.50)*radsum),3) * rinv;
+            //Scalar Exp_factor2 = fast::exp(-alpha * (r - r0));
+	        //cons_divr = Scalar(2.0) * D0 * alpha * Exp_factor2 * (Exp_factor2 - Scalar(1.0)) * rinv;
+            //pair_eng = D0 * Exp_factor2 * (Exp_factor2 - Scalar(2.0));
 	         }
 
 	      // if no overlap
@@ -505,14 +409,14 @@ class EvaluatorPairDPDThermoDPDMorse
 		 // if there is a Morse potential given in the simulation
 	         if( D0 != Scalar(0.0))
 	            {
-	            //Scalar Exp_factor = fast::exp(-alpha * (r - r0));
+	            Scalar Exp_factor = fast::exp(-alpha * (r - r0));
 
 		    // use Morse force NOT conservative force
 	            cons_divr = Scalar(2.0) * D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) * rinv;
 
 		    // Morse potential
 	            pair_eng = D0 * Exp_factor * (Exp_factor - Scalar(2.0));		
-		    //~ energy shift is ignored: This was legacy from using the LJ potential as a template.
+		    //~ energy shift is ignored: DPD always goes to 0 at the cutoff. (discontinuities are avoided with contact force). This was legacy from using the LJ potential as a template.
 	            //~if (energy_shift)
 	            //~    {
 	            //~    Scalar Exp_factor_cut = fast::exp(-alpha * (rcut - r0));
@@ -523,7 +427,7 @@ class EvaluatorPairDPDThermoDPDMorse
 		 // if there is NOT a Morse potential given in the simulation
 	         else 
 	            {
-		    // use conservative force
+		    // use conservativde force
 	            cons_divr = A0 * w_factor * rinv;
 	            pair_eng = A0 * (rcut - r) - Scalar(1.0/2.0) * A0 * rcutinv * (rcut * rcut - r*r);
 	            }
@@ -556,13 +460,11 @@ class EvaluatorPairDPDThermoDPDMorse
 		 force_divr_cons = force_divr;
 
 	         // if using Contact force
+            
 	         if(r <= Del_max)
 		    {
-                    if (f_contact != 0.0)
-                      {
-  		      // Contact force
-	              cont_divr = f_contact * pow((Scalar(1.0) - r/Del_max), 3) * pow((Scalar(0.50)*radsum),3) * rinv;
-                      }
+		    // Contact force
+	            cont_divr = f_contact * pow((Scalar(1.0) - r/Del_max), 3) * pow((Scalar(0.50)*radsum),3) * rinv;
 		    }
 
 	         unsigned int m_oi, m_oj;
@@ -628,14 +530,8 @@ class EvaluatorPairDPDThermoDPDMorse
 
     protected:
     Scalar rsq;          //!< Stored rsq from the constructor
-    Scalar radsum;       //!< Stored contact-distance from the constructor [RHEOINF]
-    unsigned int pair_typeids;//!< Stored pair typeIDs from the constructor [RHEOINF]
-    unsigned int typei;  //!<~ Stored typeID of particle i from the constructor [RHEOINF]
-    unsigned int typej;  //!<~ Stored typeID of particle j from the constructor [RHEOINF]
     Scalar rcutsq;       //!< Stored rcutsq from the constructor
     // parameters for potential extracted from the params by constructor
-    Scalar diameter_i;  //!< the diameter of particle i [RHEOINF]
-    Scalar diameter_j;  //!< the diameter of particle j [RHEOINF]
     Scalar A0;		 //!< the conservative force scaling parameter
     Scalar gamma;        //!< the viscous dissipation parameter
     Scalar D0;           //!< the depth of the Morse potential well
@@ -646,8 +542,6 @@ class EvaluatorPairDPDThermoDPDMorse
     Scalar a1;		 //!< the radius of particle i
     Scalar a2;		 //!< the radius of particle j
     Scalar rcut;	 //!< the cut-off radius for particle interaction
-    bool scaled_D0;	 //!< on/off bool for scaling D0 by particle size 
-    Scalar sys_kT;	 //!< the system temperature (typically 0.1 or 1.0)
     uint16_t m_seed;     //!< User set seed for thermostat PRNG
     unsigned int m_i;    //!< index of first particle (should it be tag?).  For use in PRNG
     unsigned int m_j;    //!< index of second particle (should it be tag?). For use in PRNG

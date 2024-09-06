@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+// ########## Modified by PRO-CF //~ [PROCF2023] ##########
 
 #include "ComputeThermoTypes.h"
 #include "hoomd/Compute.h"
@@ -275,7 +275,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
         return p;
         }
 
-    //~ add virial_ind [RHEOINF] 
+    //~ add virial_ind [PROCF2023] 
     //! Returns the upper triangular tensor of virial_ind components last computed by compute()
     /*! \returns Instantaneous virial_ind tensor, or virial_ind tensor containing NaN entries if it is
         not available
@@ -329,7 +329,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
         return toReturn;
         }
 
-    //~ add virial_ind [RHEOINF]
+    //~ add virial_ind [PROCF2023]
     //! Returns the virial_ind tensor as a python list to be used for logging
     /*! \returns the virial_ind tensor as a python list
      */

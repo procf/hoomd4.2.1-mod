@@ -1,13 +1,10 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
-
 // Include the defined classes that are to be exported to python
 #include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "../Variant.h" //~ add vinf [RHEOINF]
 
 #include "ComputeSDF.h"
 #include "ShapeSimplePolygon.h"
@@ -35,13 +32,7 @@ namespace detail
 //! Export the base HPMCMono integrators
 void export_simple_polygon(pybind11::module& m)
     {
-    //~ Update the function calls to pass both required arguments [RHEOINF]
-    m.def("create_IntegratorHPMCMonoSimplePolygon", [](std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Variant> vinf)
-    {
-        return std::make_shared<IntegratorHPMCMono<ShapeSimplePolygon>>(sysdef, vinf);
-    });
-    //export_IntegratorHPMCMono<ShapeSimplePolygon>(m, "IntegratorHPMCMonoSimplePolygon");
-    //~
+    export_IntegratorHPMCMono<ShapeSimplePolygon>(m, "IntegratorHPMCMonoSimplePolygon");
     export_ComputeFreeVolume<ShapeSimplePolygon>(m, "ComputeFreeVolumeSimplePolygon");
     export_ComputeSDF<ShapeSimplePolygon>(m, "ComputeSDFSimplePolygon");
     export_UpdaterMuVT<ShapeSimplePolygon>(m, "UpdaterMuVTSimplePolygon");

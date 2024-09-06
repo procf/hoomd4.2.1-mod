@@ -1,7 +1,7 @@
 # Copyright (c) 2009-2023 The Regents of the University of Michigan.
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-########## Modified by Rheoinformatic ##~ [RHEOINF] ##########
+########## Modified by PRO-CF ##~ [PROCF2023] ##########
 
 """Implement MD Integrator."""
 
@@ -16,7 +16,6 @@ from hoomd.data import syncedlist
 from hoomd.md.methods import Method
 from hoomd.md.force import Force
 from hoomd.md.constrain import Constraint, Rigid
-from hoomd.variant import Variant, Constant ##~ add Variant [RHEOINF]
 
 
 def _set_synced_list(old_list, new_list):
@@ -283,7 +282,7 @@ class Integrator(_DynamicIntegrator):
 
     def __init__(self,
                  dt,
-                 vinf=hoomd.variant.Constant(0), ##~ add vinf and default to 0[RHEOINF]
+                 SR=0, ##~ add SR and default to 0 [PROCF2023]
                  integrate_rotational_dof=False,
                  forces=None,
                  constraints=None,
@@ -293,29 +292,20 @@ class Integrator(_DynamicIntegrator):
 
         super().__init__(forces, constraints, methods, rigid)
 
-
         self._param_dict.update(
             ParameterDict(
                 dt=float(dt),
-                vinf=Variant, ##~ add vinf [RHEOINF]
+                SR=float(SR), ##~ add SR [PROCF2023]
                 integrate_rotational_dof=bool(integrate_rotational_dof),
                 half_step_hook=OnlyTypes(hoomd.md.HalfStepHook,
                                          allow_none=True)))
-
-        ##~ update values [RHEOINF]
-        #self._param_dict.update(
-        #    dt=float(dt),
-        #    vinf=vinf)
-        self.dt = float(dt)
-        self.vinf = vinf
-        ##~
 
         self.half_step_hook = half_step_hook
 
     def _attach_hook(self):
         # initialize the reflected c++ class
         self._cpp_obj = _md.IntegratorTwoStep(
-            self._simulation.state._cpp_sys_def, self.dt, self.vinf) ##~ add vinf [RHEOINF]
+            self._simulation.state._cpp_sys_def, self.dt, self.SR) ##~ add SR [PROCF2023]
         # Call attach from DynamicIntegrator which attaches forces,
         # constraint_forces, and methods, and calls super()._attach() itself.
         super()._attach_hook()
