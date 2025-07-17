@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+
 /*! \file TwoStepBDGPU.cuh
     \brief Declares GPU kernel code for Brownian dynamics on the GPU. Used by TwoStepBDGPU.
 */
@@ -24,6 +26,7 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                                  Scalar4* d_vel,
                                  int3* d_image,
                                  const BoxDim& box,
+                                 const Scalar* d_diameter, //~ [RHEOINF]
                                  const Scalar3 L_global,  //~ [RHEOINF]
                                  const Scalar shear_rate, //~ [RHEOINF]
                                  const unsigned int* d_tag,

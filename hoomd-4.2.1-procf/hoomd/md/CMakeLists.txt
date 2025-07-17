@@ -1,3 +1,4 @@
+### Modified by Rheoinformatic #[RHEOINF] ###
 
 
 set(_md_sources module-md.cc
@@ -52,7 +53,7 @@ set(_md_sources module-md.cc
                    TwoStepNVTAlchemy.cc
                    WallData.cc
                    ZeroMomentumUpdater.cc
-                   TwoStepRPY.cc
+		   TwoStepRPY.cc ##~ [RHEOINF]
                    )
 
 set(_md_headers ActiveForceComputeGPU.h
@@ -95,6 +96,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairDLVO.h
                 EvaluatorPairDPDThermoLJ.h
                 EvaluatorPairDPDThermoDPD.h
+		EvaluatorPairDPDThermoDPDMorse.h #[RHEOINF]
                 EvaluatorPairEwald.h
                 EvaluatorPairForceShiftedLJ.h
                 EvaluatorPairGauss.h
@@ -107,6 +109,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairExpandedMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
+		EvaluatorPairMorseRepulse.h #[RHEOINF]
                 EvaluatorPairOPP.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
@@ -131,6 +134,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
+		Lifetime.h #[RHEOINF]
                 ManifoldZCylinder.h
                 ManifoldDiamond.h
                 ManifoldEllipsoid.h
@@ -198,8 +202,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVTAlchemy.h
                 WallData.h
                 ZeroMomentumUpdater.h
-                TwoStepRPY.h
-                TwoStepRPYGPU.h
+		TwoStepRPY.h ##~ [RHEOINF]
+		TwoStepRPYGPU.h ##~ [RHEOINF]
                 )
 
 if (ENABLE_HIP)
@@ -234,7 +238,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TwoStepConstantPressureGPU.cc
                            MuellerPlatheFlowGPU.cc
                            CosineSqAngleForceComputeGPU.cc
-                           TwoStepRPYGPU.cc
+			   TwoStepRPYGPU.cc ##~ [RHEOINF]
                            )
 endif()
 
@@ -272,7 +276,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepRATTLENVEGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
-                      TwoStepRPYGPU.cu
+		      TwoStepRPYGPU.cu ##~ [RHEOINF]
                       )
 
 if (ENABLE_HIP)
@@ -477,7 +481,7 @@ foreach(_evaluator ${_wall_evaluators})
     endif()
 endforeach()
 
-set(_dpdthermo_evaluators DPD LJ)
+set(_dpdthermo_evaluators DPD LJ DPDMorse) ##~ add DPDMorse [RHEOINF]
 
 foreach(_evaluator ${_dpdthermo_evaluators})
     configure_file(export_PotentialPairDPDThermo.cc.inc
@@ -510,6 +514,7 @@ set(_pair_evaluators Buckingham
                      Yukawa
                      Ewald
                      Morse
+		     MorseRepulse #[RHEOINF]
                      ConservativeDPD
                      Moliere
                      ZBL

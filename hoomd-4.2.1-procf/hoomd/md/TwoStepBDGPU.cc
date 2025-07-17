@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+
 #include "TwoStepBDGPU.h"
 #include "TwoStepBDGPU.cuh"
 
@@ -55,13 +57,18 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
                                access_mode::readwrite);
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
                                access_location::device,
-                               access_mode::readwrite);
+                               access_mode::readwrite);    
     ArrayHandle<int3> d_image(m_pdata->getImages(),
                               access_location::device,
                               access_mode::readwrite);
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
+    //~ add diameter [RHEOINF]
+    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(),
+                                    access_location::device,
+                                    access_mode::read);
+    //~
     ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
     
     //~ add global box dimension and shear rate
@@ -87,7 +94,9 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
 
     kernel::langevin_step_two_args args(d_gamma.data,
                                         static_cast<unsigned int>(m_gamma.getNumElements()),
-                                        m_T->operator()(timestep),
+                                        m_use_alpha, //~ [RHEOINF]
+					m_alpha, //~ [RHEOINF]
+					m_T->operator()(timestep),
                                         timestep,
                                         m_sysdef->getSeed(),
                                         NULL,
@@ -129,6 +138,7 @@ void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
                           d_vel.data,
                           d_image.data,
                           box,
+                          d_diameter.data, //~ [RHEOINF]
                           L_global, //~ [RHEOINF]
                           shear_rate, //~ [RHEOINF]
                           d_tag.data,

@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+
 #include "TwoStepLangevinGPU.h"
 #include "TwoStepLangevinGPU.cuh"
 #include "TwoStepNVEGPU.cuh"
@@ -168,7 +170,12 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(),
                                      access_location::device,
                                      access_mode::readwrite);
-        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(),
+	//~ add diameter [RHEOINF]
+        ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(),
+                                       access_location::device,
+                                       access_mode::read);
+        //~
+	ArrayHandle<unsigned int> d_tag(m_pdata->getTags(),
                                         access_location::device,
                                         access_mode::read);
 
@@ -178,6 +185,8 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         // perform the update on the GPU
         kernel::langevin_step_two_args args(d_gamma.data,
                                             (unsigned int)m_gamma.getNumElements(),
+					    m_use_alpha, //~ [RHEOINF]
+					    m_alpha, //~ [RHEOINF]
                                             m_T->operator()(timestep),
                                             timestep,
                                             m_sysdef->getSeed(),
@@ -193,6 +202,7 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         kernel::gpu_langevin_step_two(d_pos.data,
                                       d_vel.data,
                                       d_accel.data,
+				      d_diameter.data, //~ [RHEOINF]
                                       d_tag.data,
                                       d_index_array.data,
                                       group_size,

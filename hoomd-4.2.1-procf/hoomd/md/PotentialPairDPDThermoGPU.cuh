@@ -305,6 +305,9 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                 // calculate r squared (FLOPS: 5)
                 Scalar rsq = dot(dx, dx);
 
+                // calculate dv (FLOPS: 3)
+                Scalar3 dv = veli - velj;
+
                 Scalar rdotv = dot(dx, dv);
                 
                 // access the per type pair parameters

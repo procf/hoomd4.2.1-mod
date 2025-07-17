@@ -323,24 +323,24 @@ class EvaluatorPairDPDThermoDPDMorse
 
         Scalar rinv = fast::rsqrt(rsq);
         // convert to h_ij (surface-surface distance)
-	Scalar r = (Scalar(1.0) / rinv) - radsum;
+	Scalar h_ij = (Scalar(1.0) / rinv) - radsum;
 	//Scalar rcut = fast::sqrt(rcutsq) - radsum;
 	Scalar rcutinv = Scalar(1.0) / rcut;
-	Scalar w_factor = (Scalar(1.0) - r * rcutinv);
+	Scalar w_factor = (Scalar(1.0) - h_ij * rcutinv);
         // compute the force divided by r in force_divr
-        if(r < rcut)
+        if(h_ij < rcut)
 	   {
 	   if(typei == 0 || typej == 0) //~ switch to using typeID
 	   //if(a1 == Scalar(0.0) or a2 == Scalar(0.0))
 	      {
 	      force_divr = A0 * w_factor * rinv;
-	      pair_eng = A0 * (rcut - r) - Scalar(1.0 / 2.0) * A0 * rcutinv * (rcut * rcut - r * r);
+	      pair_eng = A0 * (rcut - h_ij) - Scalar(1.0 / 2.0) * A0 * rcutinv * (rcut * rcut - h_ij * h_ij);
 	      }
 	   else
 	      {
 	      if(D0 != Scalar(0.0))
 	         {
-	         Scalar Exp_factor = fast::exp(-alpha * (r - r0));
+	         Scalar Exp_factor = fast::exp(-alpha * (h_ij - r0));
 	         pair_eng = D0 * Exp_factor * (Exp_factor - Scalar(2.0));
 	         force_divr = Scalar(2.0) * D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) * rinv;
 	         //~ energy shift is ignored: This was legacy from using the LJ potential as a template.
@@ -353,7 +353,7 @@ class EvaluatorPairDPDThermoDPDMorse
 	      else
 		 {
 		 force_divr = A0 * w_factor * rinv;
-		 pair_eng = A0 * (rcut - r) - Scalar(1.0 / 2.0) * A0 * rcutinv * (rcut * rcut - r * r);
+		 pair_eng = A0 * (rcut - h_ij) - Scalar(1.0 / 2.0) * A0 * rcutinv * (rcut * rcut - h_ij * h_ij);
 		 }
 	      }
 	   return true;
@@ -412,13 +412,13 @@ class EvaluatorPairDPDThermoDPDMorse
 	// get 1/r_ij
         Scalar rinv = fast::rsqrt(rsq);
 	// convert r_ij (center-center) to h_ij (surface-surface)
-        Scalar r = (Scalar(1.0) / rinv) - radsum;
+        Scalar h_ij = (Scalar(1.0) / rinv) - radsum;
         Scalar rcutinv = Scalar(1.0) / rcut;
 
         // compute the force divided by r in force_divr
-        if(r < rcut)
+        if(h_ij < rcut)
 	   {
-	   Scalar w_factor = (Scalar(1.0) - r * rcutinv);
+	   Scalar w_factor = (Scalar(1.0) - h_ij * rcutinv);
 
 	   // if at least one particle has a radius = 0 (solvent-solvent or solvent-colloid)
 	   if(typei == 0 || typej == 0) //~ switch to using typeID
@@ -456,23 +456,23 @@ class EvaluatorPairDPDThermoDPDMorse
 	      rand_divr = fast::rsqrt(m_deltaT / (m_T * gamma * Scalar(6.0))) * w_factor * theta * rinv;
 
               // conservative energy only
-	      pair_eng = A0 * (rcut - r) - Scalar(1.0/2.0) * A0 * rcutinv * (rcut * rcut - r*r);
+	      pair_eng = A0 * (rcut - h_ij) - Scalar(1.0/2.0) * A0 * rcutinv * (rcut * rcut - h_ij*h_ij);
 	      }
 
 	   // if both particles do NOT both have radius = 0 (colloid-colloid)
 	   else
 	      { 
 
-	      Scalar w_factor = (Scalar(1.0) - r * rcutinv);
-              Scalar Exp_factor = fast::exp(-alpha * (r - r0));
+	      Scalar w_factor = (Scalar(1.0) - h_ij * rcutinv);
+              Scalar Exp_factor = fast::exp(-alpha * (h_ij - r0));
 
 	      // if particles overlap
-	      if(r <= Scalar(0.0))
+	      if(h_ij <= Scalar(0.0))
 	         {
 		 // resolve overlap with CONTACT FORCE, if a contact force is provided [RHEOINF]
     		 if (f_contact != 0.0)
                     {
-    	            cont_divr = f_contact * (Scalar(1.0) - r) * pow((Scalar(0.50)*radsum),3) * rinv;
+    	            cont_divr = f_contact * (Scalar(1.0) - h_ij) * pow((Scalar(0.50)*radsum),3) * rinv;
     	            }
 	         // if no contact force provided, resolve overlap with other forces [RHEOINF]
 	         else
@@ -480,7 +480,7 @@ class EvaluatorPairDPDThermoDPDMorse
     	            // if D0 is provided, use this to calculate Morse repulsion [RHEOINF]
     	            if (D0 != 0.0)
         	       {
-        	       //Scalar Exp_factor = fast::exp(-alpha * (r - r0));
+        	       //Scalar Exp_factor = fast::exp(-alpha * (h_ij - r0));
         	       cons_divr = Scalar(2.0) * D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) * rinv;
         	       pair_eng = D0 * Exp_factor * (Exp_factor - Scalar(2.0));
         	       }
@@ -493,7 +493,7 @@ class EvaluatorPairDPDThermoDPDMorse
                        pair_eng = repulse_D0 * Exp_factor * (Exp_factor - Scalar(2.0));
                        // use conservative force
                        //force_divr = A0 * w_factor * rinv;
-                       //pair_eng = A0 * (rcut - r) - Scalar(1.0 / 2.0) * A0 * rcutinv * (rcut * rcut - r * r);
+                       //pair_eng = A0 * (rcut - h_ij) - Scalar(1.0 / 2.0) * A0 * rcutinv * (rcut * rcut - h_ij * h_ij);
         	       }
     	            }
 	         }
@@ -525,7 +525,7 @@ class EvaluatorPairDPDThermoDPDMorse
 	            {
 		    // use conservative force
 	            cons_divr = A0 * w_factor * rinv;
-	            pair_eng = A0 * (rcut - r) - Scalar(1.0/2.0) * A0 * rcutinv * (rcut * rcut - r*r);
+	            pair_eng = A0 * (rcut - h_ij) - Scalar(1.0/2.0) * A0 * rcutinv * (rcut * rcut - h_ij*h_ij);
 	            }
 
 		 // for ALL OTHER forces in the case of NO overlaps
@@ -541,13 +541,13 @@ class EvaluatorPairDPDThermoDPDMorse
 		 Scalar asq = Scalar(0.0);
 
 		 // if using the lubrication approximation
-	         if (r <= del_min)
+	         if (h_ij <= del_min)
 		    {
 	            asq = Scalar(1.178225) * eta * radsum * radsum / del_min; //3.0*pi/8.0=1.178225
 		    }
 	         else
 		    {
-	            asq = Scalar(1.178225) * eta * radsum * radsum / r;
+	            asq = Scalar(1.178225) * eta * radsum * radsum / h_ij;
 		    }
 
 		 // hydrodynamic squeezing) force
@@ -556,12 +556,12 @@ class EvaluatorPairDPDThermoDPDMorse
 		 force_divr_cons = force_divr;
 
 	         // if using Contact force
-	         if(r <= Del_max)
+	         if(h_ij <= Del_max)
 		    {
                     if (f_contact != 0.0)
                       {
   		      // Contact force
-	              cont_divr = f_contact * pow((Scalar(1.0) - r/Del_max), 3) * pow((Scalar(0.50)*radsum),3) * rinv;
+	              cont_divr = f_contact * pow((Scalar(1.0) - h_ij/Del_max), 3) * pow((Scalar(0.50)*radsum),3) * rinv;
                       }
 		    }
 

@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+
 #include "hip/hip_runtime.h"
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
@@ -31,6 +33,9 @@ namespace kernel
     \param d_image array of particle images
     \param box simulation box
     \param d_tag array of particle tags
+    \param d_diameter array of particle diameters [RHEOINF]
+    \param L_global array of box dimensions for shear [RHEOINF]
+    \param shear_rate Scalar value shear rate [RHEOINF]
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param nwork Number of group members to process on this GPU
     \param d_net_force Net force on each particle
@@ -41,6 +46,8 @@ namespace kernel
     \param d_angmom Device array of transformed angular momentum quaternion of each particle (see
         online documentation)
     \param d_gamma List of per-type gammas
+    \param use_alpha If true, gamma = alpha * diameter [RHEOINF]
+    \param alpha Scale factor to convert diameter to alpha (when use_alpha is true) [RHEOINF] 
     \param n_types Number of particle types in the simulation
     \param d_noiseless_t If set true, there will be no translational noise (random force)
     \param d_noiseless_r If set true, there will be no rotational noise (random torque)
@@ -55,6 +62,7 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
                                              Scalar4* d_vel,
                                              int3* d_image,
                                              const BoxDim box,
+                                             const Scalar* d_diameter, //~ [RHEOINF]
                                              const Scalar3 L_global,    //~ [RHEOINF]
                                              const Scalar shear_rate,   //~ [RHEOINF]
                                              const unsigned int* d_tag,
@@ -68,6 +76,8 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
                                              Scalar4* d_angmom,
                                              const Scalar* d_gamma,
                                              const unsigned int n_types,
+                                             const bool use_alpha, //~ [RHEOINF]
+                                             Scalar alpha, //~ [RHEOINF]
                                              const uint64_t timestep,
                                              const uint16_t seed,
                                              const Scalar T,
@@ -84,7 +94,7 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
     Scalar3* s_gammas_r = (Scalar3*)s_data;
     Scalar* s_gammas = (Scalar*)(s_gammas_r + n_types);
 
-    if (enable_shared_cache)
+    if (enable_shared_cache && !use_alpha) //~ don't allow shared cache for alpha sims?
         {
         // read in the gamma (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic
         // convention)
@@ -132,7 +142,28 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
 
         // calculate the magnitude of the random force
         Scalar gamma;
-        // determine gamma from type
+	//~ add alpha [RHEOINF]
+        if (use_alpha)
+            {
+            // determine gamma from diameter
+            gamma = alpha * d_diameter[idx];
+            }
+        else
+            {
+            // determine gamma from type
+            unsigned int typ = __scalar_as_int(postype.w);
+            if (enable_shared_cache)
+                {
+                gamma = s_gammas[typ];
+                }
+            else
+                {
+                gamma = d_gamma[typ];
+                }
+            }
+        //~
+        //~ moved into if statement above
+	/*// determine gamma from type
         unsigned int typ = __scalar_as_int(postype.w);
         if (enable_shared_cache)
             {
@@ -142,6 +173,7 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
             {
             gamma = d_gamma[typ];
             }
+        */
 
         // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1
         // distribution it is not the dimensionality of the system
@@ -322,6 +354,7 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                                  Scalar4* d_vel,
                                  int3* d_image,
                                  const BoxDim& box,
+                                 const Scalar* d_diameter,  //~ [RHEOINF]
                                  const Scalar3 L_global,    //~ [RHEOINF]
                                  const Scalar shear_rate,   //~ [RHEOINF]
                                  const unsigned int* d_tag,
@@ -375,8 +408,9 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                            d_vel,
                            d_image,
                            box,
-                           L_global,
-                           shear_rate,
+                           d_diameter, //~ [RHEOINF]
+                           L_global,   //~ [RHEOINF]
+                           shear_rate, //~ [RHEOINF]
                            d_tag,
                            d_group_members,
                            nwork,
@@ -388,6 +422,8 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
                            d_angmom,
                            langevin_args.d_gamma,
                            langevin_args.n_types,
+                           langevin_args.use_alpha, //~ [RHEOINF]
+                           langevin_args.alpha, //~ [RHEOINF]
                            langevin_args.timestep,
                            langevin_args.seed,
                            langevin_args.T,
