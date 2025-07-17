@@ -19,10 +19,13 @@ template<unsigned int compute_virial>
 __device__ void add_force_total(Scalar4& net_force,
                                 Scalar* net_virial,
                                 Scalar4& net_torque,
+                                Scalar* net_virial_ind, //~ [RHEOINF]
                                 Scalar4* d_f,
                                 Scalar* d_v,
                                 const size_t virial_pitch,
                                 Scalar4* d_t,
+                                Scalar* d_vind, //~ [RHEOINF]
+                                const size_t virial_ind_pitch, //~ [RHEOINF]
                                 int idx)
     {
     if (d_f != NULL && d_v != NULL && d_t != NULL)
@@ -39,6 +42,8 @@ __device__ void add_force_total(Scalar4& net_force,
             {
             for (int i = 0; i < 6; i++)
                 net_virial[i] += d_v[i * virial_pitch + idx];
+            for (int i = 0; i < 5; i++)
+                net_virial_ind[i] += d_vind[i * virial_ind_pitch + idx];
             }
 
         net_torque.x += t.x;
@@ -69,6 +74,8 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4* d_net_force,
                                                     Scalar* d_net_virial,
                                                     const size_t net_virial_pitch,
                                                     Scalar4* d_net_torque,
+                                                    Scalar* d_net_virial_ind, //~ [RHEOINF]
+                                                    const size_t net_virial_ind_pitch, //~ [RHEOINF]
                                                     const gpu_force_list force_list,
                                                     unsigned int nwork,
                                                     bool clear,
@@ -85,6 +92,8 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4* d_net_force,
         Scalar4 net_force;
         Scalar net_virial[6];
         Scalar4 net_torque;
+        //~ add virial_ind [RHEOINF]
+        Scalar net_virial_ind[5];
         if (clear)
             {
             net_force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -92,6 +101,9 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4* d_net_force,
                 {
                 for (int i = 0; i < 6; i++)
                     net_virial[i] = Scalar(0.0);
+                //~ add virial_ind [RHEOINF]
+                for (int i = 0; i < 5; i++)
+                    net_virial_ind[i] = Scalar(0.0);
                 }
             net_torque = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
             }
@@ -103,6 +115,9 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4* d_net_force,
                 {
                 for (int i = 0; i < 6; i++)
                     net_virial[i] = d_net_virial[i * net_virial_pitch + idx];
+                //~ add virial_ind [RHEOINF]
+                for (int i = 0; i < 5; i++)
+                    net_virial_ind[i] = d_net_virial_ind[i * net_virial_ind_pitch + idx];
                 }
             net_torque = d_net_torque[idx];
             }
@@ -111,50 +126,68 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4* d_net_force,
         add_force_total<compute_virial>(net_force,
                                         net_virial,
                                         net_torque,
+                                        net_virial_ind, //~ [RHEOINF]
                                         force_list.f0,
                                         force_list.v0,
                                         force_list.vpitch0,
                                         force_list.t0,
+                                        force_list.vind0, //~ [RHEOINF]
+                                        force_list.vindpitch0, //~ [RHEOINF]
                                         idx);
         add_force_total<compute_virial>(net_force,
                                         net_virial,
                                         net_torque,
+                                        net_virial_ind, //~ [RHEOINF]
                                         force_list.f1,
                                         force_list.v1,
                                         force_list.vpitch1,
                                         force_list.t1,
+                                        force_list.vind1, //~ [RHEOINF]
+                                        force_list.vindpitch1, //~ [RHEOINF]
                                         idx);
         add_force_total<compute_virial>(net_force,
                                         net_virial,
                                         net_torque,
+                                        net_virial_ind, //~ [RHEOINF]
                                         force_list.f2,
                                         force_list.v2,
                                         force_list.vpitch2,
                                         force_list.t2,
+                                        force_list.vind2, //~ [RHEOINF]
+                                        force_list.vindpitch2, //~ [RHEOINF]
                                         idx);
         add_force_total<compute_virial>(net_force,
                                         net_virial,
                                         net_torque,
+                                        net_virial_ind, //~ [RHEOINF]
                                         force_list.f3,
                                         force_list.v3,
                                         force_list.vpitch3,
                                         force_list.t3,
+                                        force_list.vind3, //~ [RHEOINF]
+                                        force_list.vindpitch3, //~ [RHEOINF]
                                         idx);
         add_force_total<compute_virial>(net_force,
                                         net_virial,
                                         net_torque,
+                                        net_virial_ind, //~ [RHEOINF]
                                         force_list.f4,
                                         force_list.v4,
                                         force_list.vpitch4,
                                         force_list.t4,
+                                        force_list.vind4, //~ [RHEOINF]
+                                        force_list.vindpitch4, //~ [RHEOINF]
                                         idx);
         add_force_total<compute_virial>(net_force,
                                         net_virial,
                                         net_torque,
+                                        net_virial_ind, //~ [RHEOINF]
                                         force_list.f5,
                                         force_list.v5,
                                         force_list.vpitch5,
                                         force_list.t5,
+                                        force_list.vind5, //~ [RHEOINF]
+                                        force_list.vindpitch5, //~ [RHEOINF]
                                         idx);
 
         // write out the final result
@@ -163,6 +196,8 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4* d_net_force,
             {
             for (int i = 0; i < 6; i++)
                 d_net_virial[i * net_virial_pitch + idx] = net_virial[i];
+            for (int i = 0; i < 5; i++)
+                d_net_virial_ind[i * net_virial_ind_pitch + idx] = net_virial_ind[i];
             }
         d_net_torque[idx] = net_torque;
         }
@@ -172,6 +207,8 @@ hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
                                         Scalar* d_net_virial,
                                         size_t net_virial_pitch,
                                         Scalar4* d_net_torque,
+                                        Scalar* d_net_virial_ind, //~ [RHEOINF]
+                                        size_t net_virial_ind_pitch, //~ [RHEOINF]
                                         const gpu_force_list& force_list,
                                         unsigned int nparticles,
                                         bool clear,
@@ -203,6 +240,8 @@ hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
                                d_net_virial,
                                net_virial_pitch,
                                d_net_torque,
+                               d_net_virial_ind, //~ [RHEOINF]
+                               net_virial_ind_pitch, //~ [RHEOINF]
                                force_list,
                                nwork,
                                clear,
@@ -219,6 +258,8 @@ hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
                                d_net_virial,
                                net_virial_pitch,
                                d_net_torque,
+                               d_net_virial_ind, //~ [RHEOINF]
+                               net_virial_ind_pitch, //~ [RHEOINF]
                                force_list,
                                nwork,
                                clear,

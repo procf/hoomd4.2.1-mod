@@ -32,12 +32,12 @@ struct thermo_index
         pressure_yz,   //!< Index for the yz component of the pressure tensor in the GPUArray
         pressure_zz,   //!< Index for the zz component of the pressure tensor in the GPUArray
         //~ add virial_ind [RHEOINF] 
-	virial_ind_xx, //~!< Index for the conservative component of the virial_ind tensor in the GPUArray
+	    virial_ind_xx, //~!< Index for the conservative component of the virial_ind tensor in the GPUArray
         virial_ind_xy, //~!< Index for the dissipative component of the virial_ind tensor in the GPUArray
         virial_ind_xz, //~!< Index for the random component of the virial_ind tensor in the GPUArray
         virial_ind_yy, //~!< Index for the squeezing_hydro component of the virial_ind tensor in the GPUArray
         virial_ind_yz, //~!< Index for the contact component of the virial_ind tensor in the GPUArray
-	//~
+	    //~
 
         num_quantities // final element to count number of quantities
         };

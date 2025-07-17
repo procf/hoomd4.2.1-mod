@@ -19,5 +19,5 @@ For methods that constrain motion to a manifold see `hoomd.md.methods.rattle`.
 
 from . import rattle
 from .methods import (Method, Langevin, Brownian, Thermostatted, ConstantVolume,
-                      ConstantPressure, DisplacementCapped, OverdampedViscous)
+                      ConstantPressure, DisplacementCapped, OverdampedViscous, RPY)
 from . import thermostats

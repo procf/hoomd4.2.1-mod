@@ -700,7 +700,7 @@ class Langevin(Method):
     where :math:`\vec{\tau}_\mathrm{C} = \vec{\tau}_\mathrm{net}`,
     :math:`\gamma_r^i` is the i-th component of the rotational drag coefficient
     (`gamma_r`), :math:`\tau_\mathrm{R}^i` is a component of the uniform random
-    the torque, :math:`\vec{L}` is the particle's angular velocity and :math:`I`
+    the torque, :math:`\vec{L}` is the particle's angular momentum and :math:`I`
     is the the particle's moment of inertia. The magnitude of the random torque
     is chosen via the fluctuation-dissipation theorem to be consistent with the
     specified drag and temperature, :math:`kT`.
@@ -708,12 +708,6 @@ class Langevin(Method):
     `Langevin` numerically integrates the translational degrees of freedom
     using Velocity-Verlet and the rotational degrees of freedom with a scheme
     based on `Kamberaj 2005`_.
-
-    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
-
-    Langevin dynamics includes the acceleration term in the Langevin equation.
-    This assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg
-    \delta t`. Use `Brownian` if your system is not underdamped.
 
     You can set :math:`\gamma` in two ways:
 
@@ -731,11 +725,17 @@ class Langevin(Method):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin],
         forces=[lj])
 
-    Examples of using `gamma` and `gamma_r`::
+    The attributes `gamma` and `gamma_r` set the translational and rotational
+    damping coefficients, respectivley, by particle type.
 
-        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2)
-        langevin.gamma.default = 2.0
-        langevin.gamma_r.default = [1.0,2.0,3.0]
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.5)
+        simulation.operations.integrator.methods = [langevin]
+
+    .. _Kamberaj 2005: http://dx.doi.org/10.1063/1.1906216
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles to
@@ -783,7 +783,7 @@ class Langevin(Method):
 
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient tensor for each particle type
-            :math:`[\mathrm{mass} \cdot mathrm{length}^{2} \cdot \mathrm{time}^{-1}]`.
+            :math:`[\mathrm{time}^{-1}]`.
 
             .. rubric:: Example:
 
@@ -796,7 +796,7 @@ class Langevin(Method):
             self,
             filter,
             kT,
-            alpha=None,
+            alpha=None, ##~ [RHEOINF] 
             tally_reservoir_energy=False,
             default_gamma=1.0,
             default_gamma_r=(1.0, 1.0, 1.0),
@@ -806,10 +806,10 @@ class Langevin(Method):
         param_dict = ParameterDict(
             filter=ParticleFilter,
             kT=Variant,
-            alpha=OnlyTypes(float, allow_none=True),
+            alpha=OnlyTypes(float, allow_none=True), ##~ [RHEOINF]
             tally_reservoir_energy=bool(tally_reservoir_energy),
         )
-        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
+        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter)) ##~ [RHEOINF]
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -981,11 +981,15 @@ Brownian dynamics neglects the acceleration term in the Langevin equation.
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian],
         forces=[lj])
 
-    Examples of using `gamma` and `gamma_r`::
+    The attributes `gamma` and `gamma_r` set the translational and rotational
+    damping coefficients, respectivley, by particle type.
 
-        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2)
-        brownian.gamma.default = 2.0
-        brownian.gamma_r.default = [1.0, 2.0, 3.0]
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=1.5)
+        simulation.operations.integrator.methods = [brownian]
 
     Attributes:
         filter (hoomd.filter.filter_like): Subset of particles to apply this
@@ -1037,7 +1041,7 @@ Brownian dynamics neglects the acceleration term in the Langevin equation.
             self,
             filter,
             kT,
-            alpha=None,
+            alpha=None, ##~ [RHEOINF]
             default_gamma=1.0,
             default_gamma_r=(1.0, 1.0, 1.0),
     ):
@@ -1046,9 +1050,9 @@ Brownian dynamics neglects the acceleration term in the Langevin equation.
         param_dict = ParameterDict(
             filter=ParticleFilter,
             kT=Variant,
-            alpha=OnlyTypes(float, allow_none=True),
+            alpha=OnlyTypes(float, allow_none=True), ##~ [RHEOINF]
         )
-        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
+        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter)) ##~ [RHEOINF]
 
         # set defaults
         self._param_dict.update(param_dict)
@@ -1218,3 +1222,48 @@ class OverdampedViscous(Method):
 
         # Attach param_dict and typeparam_dict
         super()._attach_hook()
+
+# Rotne-Prager-Yamakawa
+class RPY(Method):
+    ext_module = _md
+    def __init__(
+            self,
+            filter,
+            kT,
+            nlist,
+            xi,
+            error,
+    ):
+
+        # store metadata
+        param_dict = ParameterDict(
+            filter = ParticleFilter,
+            kT = Variant,
+            nlist = hoomd.md.nlist.NeighborList,
+            xi = float,
+            error = float,
+        )
+        param_dict.update(dict(filter=filter, kT=kT, nlist=nlist, xi=xi, error=error))
+
+        # set defaults
+        self._param_dict.update(param_dict)
+    
+    def _attach_hook(self):
+        sim = self._simulation
+        if self.nlist._attached and self._simulation != self.nlist._simulation:
+            warnings.warn(
+                f"{self} object is creating a new equivalent neighbor list."
+                f" This is happending since the force is moving to a new "
+                f"simulation. Set a new nlist to suppress this warning.",
+                RuntimeWarning)
+            self.nlist = copy.deepcopy(self.nlist)
+        self.nlist._attach(self._simulation)
+        self.nlist._cpp_obj.setStorageMode(_md.NeighborList.storageMode.full)
+        
+        if isinstance(sim.device, hoomd.device.CPU):
+            self._cpp_obj = _md.TwoStepRPY(sim.state._cpp_sys_def, sim.state._get_group(self.filter), self.kT, self.nlist._cpp_obj, self.xi, self.error)
+        else:
+            self._cpp_obj = _md.TwoStepRPYGPU(sim.state._cpp_sys_def, sim.state._get_group(self.filter), self.kT, self.nlist._cpp_obj, self.xi, self.error)
+        # attach param_dict 
+        super()._attach_hook()
+        self._cpp_obj.setParams()

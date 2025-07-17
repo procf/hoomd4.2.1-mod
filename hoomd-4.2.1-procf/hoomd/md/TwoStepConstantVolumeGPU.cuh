@@ -22,6 +22,7 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
                                     unsigned int* d_group_members,
                                     unsigned int group_size,
                                     const BoxDim& box,
+                                    const Scalar shear_rate, //~ [RHEOINF]
                                     unsigned int block_size,
                                     Scalar rescale_factor,
                                     Scalar deltaT,

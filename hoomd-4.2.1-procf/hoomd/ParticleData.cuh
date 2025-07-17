@@ -48,6 +48,7 @@ struct pdata_element
     Scalar4 net_force;    //!< net force
     Scalar4 net_torque;   //!< net torque
     Scalar net_virial[6]; //!< net virial
+    Scalar net_virial_ind[5]; //! net independent virial [RHEOINF]
     };
 #else
 //! Forward declaration
@@ -74,6 +75,8 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                               const Scalar4* d_net_torque,
                               const Scalar* d_net_virial,
                               unsigned int net_virial_pitch,
+                              const Scalar* d_net_virial_ind, //~ [RHEOINF]
+                              unsigned int net_virial_ind_pitch, //~ [RHEOINF]
                               const unsigned int* d_tag,
                               unsigned int* d_rtag,
                               Scalar4* d_pos_alt,
@@ -89,6 +92,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                               Scalar4* d_net_force_alt,
                               Scalar4* d_net_torque_alt,
                               Scalar* d_net_virial_alt,
+                              Scalar* d_net_virial_ind_alt, //~ [RHEOINF]
                               unsigned int* d_tag_alt,
                               detail::pdata_element* d_out,
                               unsigned int* d_comm_flags,
@@ -115,6 +119,8 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                              Scalar4* d_net_torque,
                              Scalar* d_net_virial,
                              unsigned int net_virial_pitch,
+                             Scalar* d_net_virial_ind, //~ [RHEOINF]
+                             unsigned int net_virial_ind_pitch, //~ [RHEOINF]
                              unsigned int* d_tag,
                              unsigned int* d_rtag,
                              const detail::pdata_element* d_in,

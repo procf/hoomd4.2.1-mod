@@ -1,55 +1,67 @@
 {
-    "files.insertFinalNewline": true,
-    "editor.autoIndent": "keep",
-    "editor.detectIndentation": false,
-    "editor.rulers": [
-        100
-    ],
-    "[restructuredtext]": {
-        "editor.rulers": [
-            100
-        ]
+    "files.associations": {
+        "array": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "vector": "cpp",
+        "__bit_reference": "cpp",
+        "__config": "cpp",
+        "__hash_table": "cpp",
+        "__locale": "cpp",
+        "__node_handle": "cpp",
+        "__split_buffer": "cpp",
+        "__threading_support": "cpp",
+        "__tree": "cpp",
+        "__verbose_abort": "cpp",
+        "bitset": "cpp",
+        "cctype": "cpp",
+        "charconv": "cpp",
+        "clocale": "cpp",
+        "cmath": "cpp",
+        "complex": "cpp",
+        "cstdarg": "cpp",
+        "cstddef": "cpp",
+        "cstdint": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "cstring": "cpp",
+        "ctime": "cpp",
+        "cwchar": "cpp",
+        "cwctype": "cpp",
+        "deque": "cpp",
+        "execution": "cpp",
+        "forward_list": "cpp",
+        "fstream": "cpp",
+        "future": "cpp",
+        "initializer_list": "cpp",
+        "iomanip": "cpp",
+        "ios": "cpp",
+        "iosfwd": "cpp",
+        "iostream": "cpp",
+        "istream": "cpp",
+        "limits": "cpp",
+        "list": "cpp",
+        "locale": "cpp",
+        "map": "cpp",
+        "mutex": "cpp",
+        "new": "cpp",
+        "optional": "cpp",
+        "ostream": "cpp",
+        "queue": "cpp",
+        "ratio": "cpp",
+        "regex": "cpp",
+        "set": "cpp",
+        "sstream": "cpp",
+        "stack": "cpp",
+        "stdexcept": "cpp",
+        "streambuf": "cpp",
+        "tuple": "cpp",
+        "typeinfo": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "variant": "cpp",
+        "algorithm": "cpp"
     },
-    "[python]": {
-        "editor.rulers": [
-            80
-        ]
-    },
-    "[cython]": {
-        "editor.rulers": [
-            80
-        ]
-    },
-    "[markdown]": {
-        "editor.rulers": [
-            100
-        ]
-    },
-    "python.linting.flake8Enabled": true,
-    "python.linting.pycodestyleEnabled": false,
-    "python.linting.pylintEnabled": false,
-    "python.formatting.provider": "yapf",
-    "cSpell.allowCompoundWords": true,
-    "files.exclude": {
-        ".cache": true,
-        ".pytest_cache": true,
-        "build": true,
-        "sphinx-doc/_build": true,
-        "hoomd/extern/cereal": true,
-        "hoomd/extern/cub": true,
-        "hoomd/extern/device": true,
-        "hoomd/extern/Eigen": true,
-        "hoomd/extern/kernels": true,
-        "hoomd/extern/libgetar": true,
-        "hoomd/extern/nano-signal-slot": true,
-        "hoomd/extern/pybind": true,
-        "hoomd/extern/quickhull": true,
-        "hoomd/extern/random123": true,
-        "hoomd/extern/upp11": true,
-        "hoomd/extern/util": true
-    },
-    "cSpell.enableFiletypes": [
-        "cuda"
-    ],
-    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+    "C_Cpp.dimInactiveRegions": false,
+    "git.ignoreLimitWarning": true
 }

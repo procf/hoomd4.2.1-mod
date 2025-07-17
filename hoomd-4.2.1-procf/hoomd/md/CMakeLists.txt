@@ -53,6 +53,7 @@ set(_md_sources module-md.cc
                    TwoStepNVTAlchemy.cc
                    WallData.cc
                    ZeroMomentumUpdater.cc
+		   TwoStepRPY.cc ##~ [RHEOINF]
                    )
 
 set(_md_headers ActiveForceComputeGPU.h
@@ -95,7 +96,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairDLVO.h
                 EvaluatorPairDPDThermoLJ.h
                 EvaluatorPairDPDThermoDPD.h
-                EvaluatorPairDPDThermoDPDMorse.h #[RHEOINF]
+		EvaluatorPairDPDThermoDPDMorse.h #[RHEOINF]
                 EvaluatorPairEwald.h
                 EvaluatorPairForceShiftedLJ.h
                 EvaluatorPairGauss.h
@@ -108,7 +109,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairExpandedMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
-                EvaluatorPairMorseRepulse.h #[RHEOINF]
+		EvaluatorPairMorseRepulse.h #[RHEOINF]
                 EvaluatorPairOPP.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
@@ -133,7 +134,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
-                Lifetime.h #[RHEOINF]
+		Lifetime.h #[RHEOINF]
                 ManifoldZCylinder.h
                 ManifoldDiamond.h
                 ManifoldEllipsoid.h
@@ -201,6 +202,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVTAlchemy.h
                 WallData.h
                 ZeroMomentumUpdater.h
+		TwoStepRPY.h ##~ [RHEOINF]
+		TwoStepRPYGPU.h ##~ [RHEOINF]
                 )
 
 if (ENABLE_HIP)
@@ -235,6 +238,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TwoStepConstantPressureGPU.cc
                            MuellerPlatheFlowGPU.cc
                            CosineSqAngleForceComputeGPU.cc
+			   TwoStepRPYGPU.cc ##~ [RHEOINF]
                            )
 endif()
 
@@ -272,6 +276,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepRATTLENVEGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
+		      TwoStepRPYGPU.cu ##~ [RHEOINF]
                       )
 
 if (ENABLE_HIP)
@@ -453,7 +458,7 @@ foreach(_evaluator ${_external_evaluators})
     endif()
 endforeach()
 
-set(_wall_evaluators LJ Yukawa ForceShiftedLJ Mie Gauss Morse) #add MorseRepulse if you want it to be a wall evaluator? [RHEOINF]
+set(_wall_evaluators LJ Yukawa ForceShiftedLJ Mie Gauss Morse)
 
 foreach(_evaluator ${_wall_evaluators})
     configure_file(export_PotentialExternalWall.cc.inc
@@ -476,7 +481,7 @@ foreach(_evaluator ${_wall_evaluators})
     endif()
 endforeach()
 
-set(_dpdthermo_evaluators DPD LJ DPDMorse) # add DPDMorse [RHEOINF]
+set(_dpdthermo_evaluators DPD LJ DPDMorse) ##~ add DPDMorse [RHEOINF]
 
 foreach(_evaluator ${_dpdthermo_evaluators})
     configure_file(export_PotentialPairDPDThermo.cc.inc
@@ -509,7 +514,7 @@ set(_pair_evaluators Buckingham
                      Yukawa
                      Ewald
                      Morse
-                     MorseRepulse #[RHEOINF]
+		     MorseRepulse #[RHEOINF]
                      ConservativeDPD
                      Moliere
                      ZBL
@@ -570,12 +575,25 @@ else()
 set_target_properties(_md PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
 endif()
 
+# find libraries
+find_library(OPENBLAS_LIBRARIES openblas PATHS /shared/EL9/explorer/openblas/0.3.29/lib/)
+if(OPENBLAS_LIBRARIES-NOTFOUND)
+    message(FATAL_ERRO "openblas libraries not found")
+endif(OPENBLAS_LIBRARIES-NOTFOUND)
+message(STATUS "found openblas libraries ${OPENBLAS_LIBRARIES}")
+# find CUBLAS
+find_library(CUBLAS_LIBRARY cublas PATHS /shared/EL9/explorer/cuda/12.1.1/targets/x86_64-linux/lib/)
+if(CUBLAS_LIBRARY-NOTFOUND)
+    message(FATAL_ERROR "cublas library not found")
+endif(CUBLAS_LIBRARY-NOTFOUND)
+message(STATUS "found cublas library ${CUBLAS_LIBRARY}")
+
 # link the library to its dependencies
 if (CUSOLVER_AVAILABLE)
     # CUDA 8.0 requires that we link in gomp
-    target_link_libraries(_md PUBLIC _hoomd CUDA::cusolver CUDA::cusparse gomp)
+    target_link_libraries(_md PUBLIC _hoomd CUDA::cusolver CUDA::cusparse gomp ${OPENBLAS_LIBRARIES})
 else()
-    target_link_libraries(_md PUBLIC _hoomd)
+    target_link_libraries(_md PUBLIC _hoomd ${OPENBLAS_LIBRARIES})
 endif()
 if (ENABLE_HIP)
     target_link_libraries(_md PRIVATE neighbor)

@@ -45,7 +45,8 @@ template<class evaluator> class PotentialPairDPDThermoGPU : public PotentialPair
     public:
     //! Construct the pair potential
     PotentialPairDPDThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
-                              std::shared_ptr<NeighborList> nlist);
+                              std::shared_ptr<NeighborList> nlist,
+                              bool bond_calc); //~ add bond_calc [RHEOINF]
     //! Destructor
     virtual ~PotentialPairDPDThermoGPU() {};
 
@@ -59,8 +60,9 @@ template<class evaluator> class PotentialPairDPDThermoGPU : public PotentialPair
 template<class evaluator>
 PotentialPairDPDThermoGPU<evaluator>::PotentialPairDPDThermoGPU(
     std::shared_ptr<SystemDefinition> sysdef,
-    std::shared_ptr<NeighborList> nlist)
-    : PotentialPairDPDThermo<evaluator>(sysdef, nlist)
+    std::shared_ptr<NeighborList> nlist,
+    bool bond_calc) //~ add bond_calc [RHEOINF]
+    : PotentialPairDPDThermo<evaluator>(sysdef, nlist, bond_calc) //~ add bond_calc [RHEOINF]
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -120,13 +122,26 @@ void PotentialPairDPDThermoGPU<evaluator>::computeForces(uint64_t timestep)
     ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(),
                                     access_location::device,
                                     access_mode::read);
+    //~ access particle diameter [RHEOINF] 
+    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(),
+                                   access_location::device,
+                                   access_mode::read);
+    //~
 
     BoxDim box = this->m_pdata->getBox();
+
+    //~ get box dims and shear rate [RHEOINF]
+    uchar3 per_ = box.getPeriodic();
+    Scalar shear_rate = this->m_SR;
+    //~
 
     // access parameters
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
+    //~ add virial_ind [RHEOINF]
+    ArrayHandle<Scalar> d_virial_ind(this->m_virial_ind, access_location::device, access_mode::overwrite);
+    //~
 
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
@@ -141,12 +156,17 @@ void PotentialPairDPDThermoGPU<evaluator>::computeForces(uint64_t timestep)
         kernel::dpd_pair_args_t(d_force.data,
                                 d_virial.data,
                                 this->m_virial.getPitch(),
+                                d_virial_ind.data, //~ [RHEOINF]
+                                this->m_virial_ind.getPitch(), //~ [RHEOINF]
                                 this->m_pdata->getN(),
                                 this->m_pdata->getMaxN(),
+                                d_diameter.data, //~ [RHEOINF]
                                 d_pos.data,
                                 d_vel.data,
                                 d_tag.data,
                                 box,
+                                per_,       //~ [RHEOINF]
+                                shear_rate, //~ [RHEOINF]
                                 d_n_neigh.data,
                                 d_nlist.data,
                                 d_head_list.data,
@@ -183,7 +203,7 @@ void export_PotentialPairDPDThermoGPU(pybind11::module& m, const std::string& na
     pybind11::class_<PotentialPairDPDThermoGPU<T>,
                      PotentialPairDPDThermo<T>,
                      std::shared_ptr<PotentialPairDPDThermoGPU<T>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, bool>()); //~ add bool for bond_calc [RHEOINF]
     }
 
     } // end namespace detail

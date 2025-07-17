@@ -252,7 +252,8 @@ void gpu_sort_migrating_particles(const size_t nsend,
 
 __global__ void gpu_wrap_particles_kernel(const unsigned int n_recv,
                                           detail::pdata_element* d_recv,
-                                          const BoxDim box)
+                                          const BoxDim box,
+                                          Scalar m_SR) //~ [RHEOINF]
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -260,15 +261,19 @@ __global__ void gpu_wrap_particles_kernel(const unsigned int n_recv,
         return;
 
     detail::pdata_element p = d_recv[idx];
+    int img0 = p.image.y; //~ get y-image for velocity [RHEOINF]
     box.wrap(p.pos, p.image);
+    img0 -= p.image.y;  //~ use current velocity to update [RHEOINF]
+    p.vel.x += (img0 * m_SR); //~ calulate new velocity [RHEOINF]
     d_recv[idx] = p;
     }
 
 /*! \param n_recv Number of particles in buffer
     \param d_in Buffer of particle data elements
     \param box Box for which to apply boundary conditions
+    \param m_SR shear rate [RHEOINF]
  */
-void gpu_wrap_particles(const unsigned int n_recv, detail::pdata_element* d_in, const BoxDim& box)
+void gpu_wrap_particles(const unsigned int n_recv, detail::pdata_element* d_in, const BoxDim& box, Scalar m_SR)
     {
     assert(d_in);
 
@@ -282,7 +287,8 @@ void gpu_wrap_particles(const unsigned int n_recv, detail::pdata_element* d_in, 
                        0,
                        n_recv,
                        d_in,
-                       box);
+                       box,
+                       m_SR);
     }
 
 //! Reset reverse lookup tags of particles we are removing
@@ -790,11 +796,14 @@ __global__ void gpu_pack_wrap_kernel(unsigned int n_out,
                                      const uint2* d_ghost_idx_adj,
                                      const Scalar4* d_postype,
                                      const int3* d_img,
+                                     const Scalar4* d_vel, //~ [RHEOINF]
                                      Scalar4* out_pos,
                                      int3* out_img,
+                                     Scalar4* out_vel, //~ [RHEOINF]
                                      Index3D di,
                                      uint3 my_pos,
-                                     BoxDim box)
+                                     BoxDim box,
+                                     Scalar m_SR) //~ [RHEOINF]
     {
     unsigned int buf_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (buf_idx >= n_out)
@@ -863,11 +872,15 @@ __global__ void gpu_pack_wrap_kernel(unsigned int n_out,
     int3 img = make_int3(0, 0, 0);
     if (d_img)
         img = d_img[idx];
+    int img0 = img.y;
     Scalar4 postype = d_postype[idx];
     box.wrap(postype, img, wrap);
+    img0 -= img.y;
+    Scalar4 vel = d_vel[idx];
+    vel.x += (img0 * m_SR);
 
     out_pos[buf_idx] = postype;
-
+    out_vel[buf_idx] = vel;
     if (out_img)
         {
         out_img[buf_idx] = img;
@@ -902,7 +915,8 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
                               bool send_orientation,
                               const Index3D& di,
                               uint3 my_pos,
-                              const BoxDim& box)
+                              const BoxDim& box,
+                              Scalar m_SR) //~ [RHEOINF]
     {
     assert(d_ghost_idx_adj);
 
@@ -939,11 +953,14 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
                            d_ghost_idx_adj,
                            d_pos,
                            d_img,
+                           d_vel,
                            d_pos_sendbuf,
                            send_image ? d_img_sendbuf : 0,
+                           d_vel_sendbuf,
                            di,
                            my_pos,
-                           box);
+                           box,
+                           m_SR);
         }
     if (send_vel)
         {

@@ -18,8 +18,8 @@ namespace md
     \param group The group of particles this integration method is to work on
     \param dt Default step size
 */
-FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar dt)
-    : FIREEnergyMinimizer(sysdef, dt), m_block_size(256)
+FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar dt, std::shared_ptr<Variant> vinf) //~ add vinf [RHEOINF]
+    : FIREEnergyMinimizer(sysdef, dt, vinf), m_block_size(256)
     {
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
@@ -460,7 +460,7 @@ void export_FIREEnergyMinimizerGPU(pybind11::module& m)
     pybind11::class_<FIREEnergyMinimizerGPU,
                      FIREEnergyMinimizer,
                      std::shared_ptr<FIREEnergyMinimizerGPU>>(m, "FIREEnergyMinimizerGPU")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, Scalar, std::shared_ptr<Variant>>()); //~ add vinf [RHEOINF]
     }
 
     } // end namespace detail

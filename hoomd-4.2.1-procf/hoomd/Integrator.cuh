@@ -59,6 +59,22 @@ struct gpu_force_list
     size_t vpitch3; //!< Pitch of virial array 3
     size_t vpitch4; //!< Pitch of virial array 4
     size_t vpitch5; //!< Pitch of virial array 5
+
+    //~ add virial_ind [RHEOINF]
+    Scalar* vind0; //!< Pointer to virial array 0
+    Scalar* vind1; //!< Pointer to virial array 1
+    Scalar* vind2; //!< Pointer to virial array 2
+    Scalar* vind3; //!< Pointer to virial array 3
+    Scalar* vind4; //!< Pointer to virial array 4
+    Scalar* vind5; //!< Pointer to virial array 5
+
+    size_t vindpitch0; //!< Pitch of virial array 0
+    size_t vindpitch1; //!< Pitch of virial array 1
+    size_t vindpitch2; //!< Pitch of virial array 2
+    size_t vindpitch3; //!< Pitch of virial array 3
+    size_t vindpitch4; //!< Pitch of virial array 4
+    size_t vindpitch5; //!< Pitch of virial array 5
+    //~
     };
 
 //! Driver for gpu_integrator_sum_net_force_kernel()
@@ -66,6 +82,8 @@ hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
                                         Scalar* d_net_virial,
                                         const size_t virial_pitch,
                                         Scalar4* d_net_torque,
+                                        Scalar* d_net_virial_ind, //~ [RHEOINF]
+                                        size_t net_virial_ind_pitch, //~ [RHEOINF]
                                         const gpu_force_list& force_list,
                                         unsigned int nparticles,
                                         bool clear,

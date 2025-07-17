@@ -130,7 +130,7 @@ class BoxResize(Updater):
         else:
             self._cpp_obj = _hoomd.BoxResizeUpdaterGPU(
                 self._simulation.state._cpp_sys_def, self.trigger,
-                self.box1._cpp_obj, self.box2._cpp_obj, self.variant, group)
+                self.box1._cpp_obj, self.box2._cpp_obj, self.variant, self.vinf, group)
 
     def get_box(self, timestep):
         """Get the box for a given timestep.
@@ -171,6 +171,6 @@ class BoxResize(Updater):
             updater = _hoomd.BoxResizeUpdaterGPU(state._cpp_sys_def,
                                                  Periodic(1),
                                                  state.box._cpp_obj,
-                                                 box._cpp_obj, Constant(1),
+                                                 box._cpp_obj, Constant(1), Constant(1),
                                                  group)
         updater.update(state._simulation.timestep)

@@ -31,7 +31,7 @@ class PYBIND11_EXPORT FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     {
     public:
     //! Constructs the minimizer and associates it with the system
-    FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>, Scalar);
+    FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>, Scalar, std::shared_ptr<Variant>); //~ add vinf [RHEOINF]
 
     //! Destroys the minimizer
     virtual ~FIREEnergyMinimizerGPU() { }

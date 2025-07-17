@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2023 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+// ########## Modified by Rheoinformatic //~ [RHEOINF] ##########
+
 /*! \file TwoStepLangevinGPU.cuh
     \brief Declares GPU kernel code for Langevin dynamics on the GPU. Used by TwoStepLangevinGPU.
 */
@@ -23,6 +25,8 @@ struct langevin_step_two_args
     {
     langevin_step_two_args(Scalar* _d_gamma,
                            unsigned int _n_types,
+			   bool _use_alpha, //~ [RHEOINF]
+                           Scalar _alpha, //~ [RHEOINF]
                            Scalar _T,
                            uint64_t _timestep,
                            uint16_t _seed,
@@ -34,7 +38,8 @@ struct langevin_step_two_args
                            bool _noiseless_r,
                            bool _tally,
                            const hipDeviceProp_t& _devprop)
-        : d_gamma(_d_gamma), n_types(_n_types), T(_T), timestep(_timestep), seed(_seed),
+        : d_gamma(_d_gamma), n_types(_n_types), use_alpha(_use_alpha), alpha(_alpha), //~ add alpha [RHEOINF]
+	  T(_T), timestep(_timestep), seed(_seed), //~ move to new line [RHEOINF]
           d_sum_bdenergy(_d_sum_bdenergy), d_partial_sum_bdenergy(_d_partial_sum_bdenergy),
           block_size(_block_size), num_blocks(_num_blocks), noiseless_t(_noiseless_t),
           noiseless_r(_noiseless_r), tally(_tally), devprop(_devprop)
@@ -43,6 +48,8 @@ struct langevin_step_two_args
 
     Scalar* d_gamma;                //!< Device array listing per-type gammas
     unsigned int n_types;           //!< Number of types in \a d_gamma
+    bool use_alpha;                 //!< Set to true to scale diameters by alpha to get gamma [RHEOINF]
+    Scalar alpha;                   //!< Scale factor to convert diameter to alpha [RHEOINF]
     Scalar T;                       //!< Current temperature
     uint64_t timestep;              //!< Current timestep
     uint16_t seed;                  //!< User chosen random number seed
@@ -60,6 +67,7 @@ struct langevin_step_two_args
 hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
                                  Scalar4* d_vel,
                                  Scalar3* d_accel,
+                                 const Scalar* d_diameter, //~ [RHEOINF]
                                  const unsigned int* d_tag,
                                  unsigned int* d_group_members,
                                  unsigned int group_size,

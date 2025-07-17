@@ -67,6 +67,7 @@ void BoxShearUpdater::update(uint64_t timestep)
     {
     Updater::update(timestep);
     m_exec_conf->msg->notice(10) << "Box shear update" << endl;
+    std::cout << "[BoxShearUpdater] Base update called!" << std::endl;
 
     BoxDim cur_box = m_pdata->getGlobalBox();
     Scalar L_Y = cur_box.getL().y;

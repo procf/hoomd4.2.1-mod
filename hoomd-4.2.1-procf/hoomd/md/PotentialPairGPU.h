@@ -125,6 +125,10 @@ template<class evaluator> void PotentialPairGPU<evaluator>::computeForces(uint64
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::readwrite);
+    //~ add virial_ind [RHEOINF]
+    ArrayHandle<Scalar> d_virial_ind(this->m_virial_ind, access_location::device, access_mode::readwrite);
+    //~ add diameter [RHEOINF]
+    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
 
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
@@ -140,6 +144,11 @@ template<class evaluator> void PotentialPairGPU<evaluator>::computeForces(uint64
         kernel::pair_args_t(d_force.data,
                             d_virial.data,
                             this->m_virial.getPitch(),
+                            //~ add virial_ind [RHEOINF]
+                            d_virial_ind.data,
+                            this->m_virial_ind.getPitch(),
+                            // ~ add diameters [RHEOINF]
+                            d_diameter.data,
                             this->m_pdata->getN(),
                             this->m_pdata->getMaxN(),
                             d_pos.data,

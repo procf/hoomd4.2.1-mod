@@ -214,6 +214,9 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
         Scalar viriali[6];
         for (unsigned int l = 0; l < 6; l++)
             viriali[l] = 0.0;
+        //~ initialize virialxyi_ind to zero [RHEOINF]
+        Scalar virialxyi_ind = 0.0;
+        //~
         //~ initialize the current virial_ind to zero [RHEOINF]
         Scalar viriali_ind[5];
         for (unsigned int l = 0; l < 5; l++)
@@ -298,7 +301,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
             Scalar rand_divr = Scalar(0.0);
             Scalar sq_divr = Scalar(0.0);
             Scalar cont_divr = Scalar(0.0);
-	    //~
+	        //~
             Scalar pair_eng = Scalar(0.0);  
             evaluator eval(rsq, radcontact, pair_typeids, rcutsq, param); //~ add radcontact, pair_typeids for polydispersity [RHEOINF] 
 
@@ -360,10 +363,14 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
                 pair_virial[4] = Scalar(0.5) * dx.y * dx.z * force_divr_cons;
                 pair_virial[5] = Scalar(0.5) * dx.z * dx.z * force_divr_cons;
 
+                //~ compute virialxyi_ind [RHEOINF]
+                virialxyi_ind += Scalar(0.5) * force_divr_cons * dx.x * dx.y;
+                //~
+
                 //~ compute the virial_ind [RHEOINF]
-		Scalar virial_ind_prefix = Scalar(0.5) * dx.x * dx.y;
-		Scalar pair_virial_ind[5];
-		pair_virial_ind[0] = virial_ind_prefix * cons_divr;
+                Scalar virial_ind_prefix = Scalar(0.5) * dx.x * dx.y;
+                Scalar pair_virial_ind[5];
+                pair_virial_ind[0] = virial_ind_prefix * cons_divr;
                 pair_virial_ind[1] = virial_ind_prefix * disp_divr;
                 pair_virial_ind[2] = virial_ind_prefix * rand_divr;
                 pair_virial_ind[3] = virial_ind_prefix * sq_divr;
@@ -379,7 +386,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
                 //~ add virial_ind [RHEOINF]
                 for (unsigned int l = 0; l < 5; l++)
                     viriali_ind[l] += pair_virial_ind[l];
-		//~
+		        //~
 
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10
                 // scalars / FLOPS: 8)
@@ -392,6 +399,9 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
                     h_force.data[mem_idx].w += pair_eng * Scalar(0.5);
                     for (unsigned int l = 0; l < 6; l++)
                         h_virial.data[l * this->m_virial_pitch + mem_idx] += pair_virial[l];
+                    //~ add virialxyi_ind [RHEOINF]
+                    h_virial_ind.data[0 * this->m_virial_ind_pitch + mem_idx] += Scalar(0.5) * force_divr_cons * dx.x * dx.y;
+                    //~
                     //~ add virial_ind [RHEOINF] 
                     for (unsigned int l = 0; l < 5; l++)
                         h_virial_ind.data[l * this->m_virial_ind_pitch + mem_idx] += pair_virial_ind[l];
@@ -408,6 +418,9 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
         h_force.data[mem_idx].w += pei;
         for (unsigned int l = 0; l < 6; l++)
             h_virial.data[l * this->m_virial_pitch + mem_idx] += viriali[l];
+        //~ add virialxyi_ind [RHEOINF]
+        h_virial_ind.data[0 * this->m_virial_ind_pitch + mem_idx] += virialxyi_ind;
+        //~
         //~ add virial_ind [RHEOINF] 
         for (unsigned int l = 0; l < 5; l++)
             h_virial_ind.data[l * this->m_virial_ind_pitch + mem_idx] += viriali_ind[l];

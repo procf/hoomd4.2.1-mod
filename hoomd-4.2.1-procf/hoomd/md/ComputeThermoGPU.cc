@@ -69,6 +69,7 @@ void ComputeThermoGPU::computeProperties()
     m_scratch.resize(num_blocks);
     m_scratch_pressure_tensor.resize(num_blocks * 6);
     m_scratch_rot.resize(num_blocks);
+    m_scratch_virial_ind_tensor.resize(num_blocks * 5);    //~ [RHEOINF]
 
     if (m_scratch.size() != old_size)
         {
@@ -92,6 +93,11 @@ void ComputeThermoGPU::computeProperties()
                               sizeof(Scalar) * m_scratch_rot.getNumElements(),
                               cudaMemAdviseSetAccessedBy,
                               gpu_map[idev]);
+                //~ add virial_ind [RHEOINF]
+                cudaMemAdvise(m_scratch_virial_ind_tensor.get(),
+                              sizeof(Scalar) * m_scratch_virial_ind_tensor.getNumElements(),
+                              cudaMemAdviseSetAccessedBy,
+                              gpu_map[idev]);
                 }
             CHECK_CUDA_ERROR();
             }
@@ -105,12 +111,19 @@ void ComputeThermoGPU::computeProperties()
         ArrayHandle<Scalar> d_scratch_rot(m_scratch_rot,
                                           access_location::device,
                                           access_mode::overwrite);
-
+        //~ add virial_ind [RHEOINF]
+        ArrayHandle<Scalar> d_scratch_virial_ind_tensor(m_scratch_virial_ind_tensor,
+                                                        access_location::device,
+                                                        access_mode::overwrite);
+        //~
         hipMemset(d_scratch.data, 0, sizeof(Scalar4) * m_scratch.size());
         hipMemset(d_scratch_pressure_tensor.data,
                   0,
                   sizeof(Scalar) * m_scratch_pressure_tensor.size());
         hipMemset(d_scratch_rot.data, 0, sizeof(Scalar) * m_scratch_rot.size());
+        hipMemset(d_scratch_virial_ind_tensor.data,
+                  0,
+                  sizeof(Scalar) * m_scratch_virial_ind_tensor.size());
         }
 
     // access the particle data
@@ -129,8 +142,12 @@ void ComputeThermoGPU::computeProperties()
         // access the net force, pe, and virial
         const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
         const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
+        //~ add virial_ind [RHEOINF]
+        const GlobalArray<Scalar>& net_virial_ind = m_pdata->getNetVirialInd();
         ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
         ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::read);
+        //~ add virial_ind [RHEOINF]
+        ArrayHandle<Scalar> d_net_virial_ind(net_virial_ind, access_location::device, access_mode::read);
         ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
                                            access_location::device,
                                            access_mode::read);
@@ -147,6 +164,10 @@ void ComputeThermoGPU::computeProperties()
         ArrayHandle<Scalar> d_scratch_rot(m_scratch_rot,
                                           access_location::device,
                                           access_mode::overwrite);
+        //~ add virial_ind [RHEOINF]
+        ArrayHandle<Scalar> d_scratch_virial_ind_tensor(m_scratch_virial_ind_tensor,
+                                                        access_location::device,
+                                                        access_mode::overwrite);
         ArrayHandle<Scalar> d_properties(m_properties,
                                          access_location::device,
                                          access_mode::overwrite);
@@ -163,14 +184,20 @@ void ComputeThermoGPU::computeProperties()
         args.n_blocks = num_blocks;
         args.d_net_force = d_net_force.data;
         args.d_net_virial = d_net_virial.data;
+        //~ add virial_ind [RHEOINF]
+        args.d_net_virial_ind = d_net_virial_ind.data;
         args.d_orientation = d_orientation.data;
         args.d_angmom = d_angmom.data;
         args.d_inertia = d_inertia.data;
         args.virial_pitch = net_virial.getPitch();
+        //~ add virial_ind [RHEOINF]
+        args.virial_ind_pitch = net_virial_ind.getPitch();
         args.ndof = m_group->getTranslationalDOF();
         args.D = m_sysdef->getNDimensions();
         args.d_scratch = d_scratch.data;
         args.d_scratch_pressure_tensor = d_scratch_pressure_tensor.data;
+        //~ add virial_ind [RHEOINF]
+        args.d_scratch_virial_ind_tensor = d_scratch_virial_ind_tensor.data;
         args.d_scratch_rot = d_scratch_rot.data;
         args.block_size = m_block_size;
         args.external_virial_xx = m_pdata->getExternalVirial(0);
@@ -192,6 +219,7 @@ void ComputeThermoGPU::computeProperties()
                                    args,
                                    flags[pdata_flag::pressure_tensor],
                                    flags[pdata_flag::rotational_kinetic_energy],
+                                   flags[pdata_flag::virial_ind_tensor], //~ [RHEOINF]
                                    m_group->getGPUPartition());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -210,7 +238,8 @@ void ComputeThermoGPU::computeProperties()
                                  box,
                                  args,
                                  flags[pdata_flag::pressure_tensor],
-                                 flags[pdata_flag::rotational_kinetic_energy]);
+                                 flags[pdata_flag::rotational_kinetic_energy],
+                                 flags[pdata_flag::virial_ind_tensor]); //~ [RHEOINF]
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

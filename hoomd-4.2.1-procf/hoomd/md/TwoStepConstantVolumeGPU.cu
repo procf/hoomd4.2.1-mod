@@ -39,6 +39,7 @@ __global__ void gpu_nvt_rescale_step_one_kernel(Scalar4* d_pos,
                                                 unsigned int* d_group_members,
                                                 unsigned int work_size,
                                                 BoxDim box,
+                                                const Scalar shear_rate, //~ [RHEOINF]
                                                 Scalar rescale_factor,
                                                 Scalar deltaT,
                                                 unsigned int offset,
@@ -78,8 +79,13 @@ __global__ void gpu_nvt_rescale_step_one_kernel(Scalar4* d_pos,
         // read in the image flags
         int3 image = d_image[idx];
 
+        //~ add shear rate [RHEOINF]
+        int img0 = image.y;
+
         // time to fix the periodic boundary conditions
         box.wrap(pos, image);
+        img0 -= image.y; //~ [RHEOINF]
+        vel.x += (img0 * shear_rate); //~ [RHEOINF]
 
         // write out the results
         d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, postype.w);
@@ -106,6 +112,7 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
                                     unsigned int* d_group_members,
                                     unsigned int group_size,
                                     const BoxDim& box,
+                                    const Scalar shear_rate, //~ [RHEOINF]
                                     unsigned int block_size,
                                     Scalar rescale_factor,
                                     Scalar deltaT,
@@ -144,6 +151,7 @@ hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
                            d_group_members,
                            nwork,
                            box,
+                           shear_rate,
                            rescale_factor,
                            deltaT,
                            range.first,
