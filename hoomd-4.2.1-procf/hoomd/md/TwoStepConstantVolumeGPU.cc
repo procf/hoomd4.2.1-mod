@@ -70,6 +70,8 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
                                   access_mode::readwrite);
 
         BoxDim box = m_pdata->getBox();
+        Scalar shear_rate = this->m_SR; //~ add shear_rate [RHEOINF]
+
         ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
                                                 access_location::device,
                                                 access_mode::read);
@@ -87,6 +89,7 @@ void TwoStepConstantVolumeGPU::integrateStepOne(uint64_t timestep)
                                          d_index_array.data,
                                          group_size,
                                          box,
+                                         shear_rate, //~ [RHEOINF]
                                          m_tuner_one->getParam()[0],
                                          rescalingFactors[0], // m_exp_thermo_fac,
                                          m_deltaT,

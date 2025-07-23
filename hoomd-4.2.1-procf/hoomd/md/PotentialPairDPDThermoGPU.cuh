@@ -40,12 +40,17 @@ struct dpd_pair_args_t
     dpd_pair_args_t(Scalar4* _d_force,
                     Scalar* _d_virial,
                     const size_t _virial_pitch,
+                    Scalar* _d_virial_ind, //~ [RHEOINF]
+                    const size_t _virial_ind_pitch, //~ [RHEOINF]
                     const unsigned int _N,
                     const unsigned int _n_max,
+                    const Scalar* _d_diameter,  //~ [RHEOINF]
                     const Scalar4* _d_pos,
                     const Scalar4* _d_vel,
                     const unsigned int* _d_tag,
                     const BoxDim& _box,
+                    const uchar3 _per_,          //~ [RHEOINF]
+                    const Scalar _shear_rate,   //~ [RHEOINF]
                     const unsigned int* _d_n_neigh,
                     const unsigned int* _d_nlist,
                     const size_t* _d_head_list,
@@ -61,8 +66,13 @@ struct dpd_pair_args_t
                     const unsigned int _compute_virial,
                     const unsigned int _threads_per_particle,
                     const hipDeviceProp_t& _devprop)
-        : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
-          d_pos(_d_pos), d_vel(_d_vel), d_tag(_d_tag), box(_box), d_n_neigh(_d_n_neigh),
+        : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), 
+          d_virial_ind(_d_virial_ind), virial_ind_pitch(_virial_ind_pitch), //~ [RHEOINF]
+          N(_N), n_max(_n_max),
+          d_diameter(_d_diameter), //~ [RHEOINF]
+          d_pos(_d_pos), d_vel(_d_vel), d_tag(_d_tag), box(_box),
+          per_(_per_), shear_rate(_shear_rate), //~ [RHEOINF]
+          d_n_neigh(_d_n_neigh),
           d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq),
           size_nlist(_size_nlist), ntypes(_ntypes), block_size(_block_size), seed(_seed),
           timestep(_timestep), deltaT(_deltaT), T(_T), shift_mode(_shift_mode),
@@ -72,12 +82,17 @@ struct dpd_pair_args_t
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out
     const size_t virial_pitch; //!< Pitch of 2D virial array
+    Scalar* d_virial_ind;          //!< Virial to write out [RHEOINF]
+    const size_t virial_ind_pitch; //!< Pitch of 2D virial array [RHEOINF]
     const unsigned int N;      //!< number of particles
     const unsigned int n_max;  //!< Maximum size of particle data arrays
+    const Scalar * d_diameter; //!< diameter of particles [RHEOINF]
     const Scalar4* d_pos;      //!< particle positions
     const Scalar4* d_vel;      //!< particle velocities
     const unsigned int* d_tag; //!< particle tags
     const BoxDim box;          //!< Simulation box in GPU format
+    const uchar3 per_;          //!< periodicity of box [RHEOINF]
+    const Scalar shear_rate;   //!< shear rate [RHEOINF]
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
     const unsigned int* d_nlist; //!< Device array listing the neighbors of each particle
@@ -148,11 +163,16 @@ template<class evaluator,
 __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                                               Scalar* d_virial,
                                               const size_t virial_pitch,
+                                              Scalar * d_virial_ind,    //~ [RHEOINF]
+                                              const size_t virial_ind_pitch, //~ [RHEOINF]
                                               const unsigned int N,
+                                              const Scalar* d_diameter, //~ [RHEOINF]
                                               const Scalar4* d_pos,
                                               const Scalar4* d_vel,
                                               const unsigned int* d_tag,
                                               BoxDim box,
+                                              const Scalar shear_rate, //~ [RHEOINF]
+                                              const uchar3 per_,       //~ [RHEOINF]
                                               const unsigned int* d_n_neigh,
                                               const unsigned int* d_nlist,
                                               const size_t* d_head_list,
@@ -199,6 +219,11 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
     Scalar virial[6];
     for (unsigned int i = 0; i < 6; i++)
         virial[i] = Scalar(0.0);
+    //~ add virial_ind [RHEOINF]
+    Scalar virial_ind[5];
+    for (unsigned int i = 0; i < 5; i++)
+        virial_ind[i] = Scalar(0.0);
+    //~
 
     if (active)
         {
@@ -214,6 +239,9 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
         // (MEM TRANSFER: 16 bytes)
         Scalar4 velmassi = __ldg(d_vel + idx);
         Scalar3 veli = make_scalar3(velmassi.x, velmassi.y, velmassi.z);
+
+        //~ read in the diameter of our particle [RHEOINF]
+        Scalar diameter_i = __ldg(d_diameter + idx);
 
         // prefetch neighbor index
         const size_t head_idx = d_head_list[idx];
@@ -244,8 +272,32 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                 Scalar4 velmassj = __ldg(d_vel + cur_j);
                 Scalar3 velj = make_scalar3(velmassj.x, velmassj.y, velmassj.z);
 
+                //~ get the neighbor's diameter [RHEOINF]
+                Scalar diameter_j = __ldg(d_diameter + cur_j);
+
                 // calculate dr (with periodic boundary conditions) (FLOPS: 3)
                 Scalar3 dx = posi - posj;
+
+                // calculate dv (FLOPS: 3)
+                Scalar3 dv = veli - velj;
+
+                //~ calculate shear rate [RHEOINF]
+                Scalar3 L2 = box.getL();
+                if (shear_rate != Scalar(0.0) && (int)per_.y)
+                    {
+                    if (abs(dx.y) > Scalar(0.5) * L2.y)
+                        {
+                        if (dx.y > Scalar(0.0))
+                            {
+                            dv.x -= shear_rate;
+                            }
+                        else
+                            {
+                            dv.x += shear_rate;
+                            }
+                        }
+                    }
+                //~
 
                 // apply periodic boundary conditions: (FLOPS 12)
                 dx = box.minImage(dx);
@@ -253,16 +305,24 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                 // calculate r squared (FLOPS: 5)
                 Scalar rsq = dot(dx, dx);
 
-                // calculate dv (FLOPS: 3)
-                Scalar3 dv = veli - velj;
-
                 Scalar rdotv = dot(dx, dv);
-
+                
                 // access the per type pair parameters
                 unsigned int typpair
                     = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypej.w));
                 Scalar rcutsq = s_rcutsq[typpair];
                 typename evaluator::param_type& param = s_params[typpair];
+
+                //~ store the typeIDs of the current pair [RHEOINF]
+                unsigned int pair_typeids[2] = {0, 0};
+                pair_typeids[0] = __scalar_as_int(postypei.w);
+                pair_typeids[1] = __scalar_as_int(postypej.w);
+                //~
+
+                //~ calculate the center-center distance equal to particle-particle contact (AKA r0) [RHEOINF]
+                //~ the calculation is only used if there is polydispersity
+                Scalar radcontact = 0.0;
+                radcontact = Scalar(0.5) * (diameter_i + diameter_j);
 
                 // design specifies that energies are shifted if
                 // 1) shift mode is set to shift
@@ -271,12 +331,20 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                 if (shift_mode == 1)
                     energy_shift = true;
 
-                evaluator eval(rsq, rcutsq, param);
+                evaluator eval(rsq, radcontact, pair_typeids, rcutsq, param); //~ add radcontact, pair_typeids for polydispersity [RHEOINF]
 
                 // evaluate the potential
                 Scalar force_divr = Scalar(0.0);
                 Scalar force_divr_cons = Scalar(0.0);
                 Scalar pair_eng = Scalar(0.0);
+
+                //~ add virial_ind terms [RHEOINF]
+                Scalar cons_divr = Scalar(0.0);
+                Scalar disp_divr = Scalar(0.0);
+                Scalar rand_divr = Scalar(0.0);
+                Scalar sq_divr = Scalar(0.0);
+                Scalar cont_divr = Scalar(0.0);
+                //~
 
                 // Special Potential Pair DPD Requirements
                 // use particle i's and j's tags
@@ -286,7 +354,9 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                 eval.setRDotV(rdotv);
                 eval.setT(d_T);
 
-                eval.evalForceEnergyThermo(force_divr, force_divr_cons, pair_eng, energy_shift);
+                eval.evalForceEnergyThermo(force_divr, force_divr_cons,
+                                           cons_divr, disp_divr, rand_divr, sq_divr, cont_divr, //~ [RHEOINF]
+                                           pair_eng, energy_shift);
 
                 // calculate the virial (FLOPS: 3)
                 if (compute_virial)
@@ -298,6 +368,13 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                     virial[3] += dx.y * dx.y * force_div2r_cons;
                     virial[4] += dx.y * dx.z * force_div2r_cons;
                     virial[5] += dx.z * dx.z * force_div2r_cons;
+
+                    Scalar virial_ind_prefix = Scalar(0.5) * dx.x * dx.y;
+                    virial_ind[0] += virial_ind_prefix * cons_divr + force_div2r_cons * dx.x * dx.y;
+                    virial_ind[1] += virial_ind_prefix * disp_divr;
+                    virial_ind[2] += virial_ind_prefix * rand_divr;
+                    virial_ind[3] += virial_ind_prefix * sq_divr;
+                    virial_ind[4] += virial_ind_prefix * cont_divr;
                     }
 
                 // add up the force vector components (FLOPS: 7)
@@ -328,11 +405,16 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
         {
         for (unsigned int i = 0; i < 6; ++i)
             virial[i] = reducer.Sum(virial[i]);
-
+        for (unsigned int i = 0; i < 5; i++)
+            virial_ind[i] = reducer.Sum(virial_ind[i]);
+        
         // if we are the first thread in the cta, write out virial to global mem
         if (active && threadIdx.x % tpp == 0)
             for (unsigned int i = 0; i < 6; i++)
                 d_virial[i * virial_pitch + idx] = virial[i];
+            for (unsigned int i = 0; i < 5; i++)
+                d_virial_ind[i * virial_ind_pitch + idx] = virial_ind[i];
+            
         }
     }
 
@@ -410,11 +492,16 @@ struct DPDForceComputeKernel
                                args.d_force,
                                args.d_virial,
                                args.virial_pitch,
+                               args.d_virial_ind,   //~ [RHEOINF]
+                               args.virial_ind_pitch, //~ [RHEOINF]
                                args.N,
+                               args.d_diameter, //~ [RHEOINF]
                                args.d_pos,
                                args.d_vel,
                                args.d_tag,
                                args.box,
+                               args.shear_rate, //~ [RHEOINF]
+                               args.per_,       //~ [RHEOINF]
                                args.d_n_neigh,
                                args.d_nlist,
                                args.d_head_list,

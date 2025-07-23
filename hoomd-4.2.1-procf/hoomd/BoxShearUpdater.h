@@ -80,7 +80,7 @@ class PYBIND11_EXPORT BoxShearUpdater : public Updater
     std::shared_ptr<Communicator> m_comm;
 #endif
 
-    private:
+    // private: Changed to protected by Mingyang Tan [RHEOINF]
     std::shared_ptr<Variant> m_vinf;     //!< Variant that interpolates between boxes
     Scalar m_deltaT;
     bool m_flip;

@@ -72,7 +72,8 @@ void gpu_sort_migrating_particles(const size_t nsend,
                                   CachedAllocator& alloc);
 
 //! Apply boundary conditions
-void gpu_wrap_particles(const unsigned int n_recv, detail::pdata_element* d_in, const BoxDim& box);
+//~ add m_SR [RHEOINF]
+void gpu_wrap_particles(const unsigned int n_recv, detail::pdata_element* d_in, const BoxDim& box, Scalar m_SR);
 
 //! Reset reverse lookup tags of particles we are removing
 void gpu_reset_rtags(unsigned int n_delete_ptls, unsigned int* d_delete_tags, unsigned int* d_rtag);
@@ -144,7 +145,8 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
                               bool send_orientation,
                               const Index3D& di,
                               uint3 my_pos,
-                              const BoxDim& box);
+                              const BoxDim& box,
+                              Scalar m_SR); //~ [RHEOINF] 
 
 //! Copy receive buffers into particle data
 void gpu_exchange_ghosts_copy_buf(unsigned int n_recv,

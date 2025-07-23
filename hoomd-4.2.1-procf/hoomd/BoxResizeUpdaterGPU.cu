@@ -31,14 +31,23 @@ __global__ void gpu_box_resize_scale_kernel(Scalar4* d_pos,
         }
     }
 
+//~ [RHEOINF]
 __global__ void
-gpu_box_resize_wrap_kernel(unsigned int N, Scalar4* d_pos, int3* d_image, const BoxDim new_box)
+gpu_box_resize_wrap_kernel(unsigned int N,
+                           Scalar4* d_pos, 
+                           Scalar4* d_vel, //~ [RHEOINF]
+                           int3* d_image, 
+                           const BoxDim local_box, //~ [RHEOINF]
+                           Scalar cur_vel) //~ [RHEOINF]
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < N)
         {
-        new_box.wrap(d_pos[idx], d_image[idx]);
+        int img0 = d_image[idx].y;   //~ get y-image for velocity scaling [RHEOINF]
+        local_box.wrap(d_pos[idx], d_image[idx]);
+        img0 -= d_image[idx].y;  //~ use current data to modify image [RHEOINF]
+        d_vel[idx].x += (img0 * cur_vel);
         }
     }
 
@@ -74,8 +83,11 @@ hipError_t gpu_box_resize_scale(Scalar4* d_pos,
 
 hipError_t gpu_box_resize_wrap(const unsigned int N,
                                Scalar4* d_pos,
+                               Scalar4* d_vel, //~ [RHEOINF]
                                int3* d_image,
-                               const BoxDim& new_box,
+                            //    const BoxDim& new_box,
+                               const BoxDim& local_box, //~ [RHEOINF]
+                               Scalar cur_vel, //~ [RHEOINF]
                                unsigned int block_size)
     {
     unsigned int max_block_size;
@@ -94,8 +106,10 @@ hipError_t gpu_box_resize_wrap(const unsigned int N,
                        0,
                        N,
                        d_pos,
+                       d_vel, //~ [RHEOINF]
                        d_image,
-                       new_box);
+                       local_box,   //~ [RHEOINF]
+                       cur_vel);    //~ [RHEOINF]
 
     return hipSuccess;
     }

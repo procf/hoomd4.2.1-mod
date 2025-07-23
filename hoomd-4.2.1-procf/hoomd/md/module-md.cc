@@ -56,9 +56,7 @@ void export_PotentialPairExpandedMie(pybind11::module& m);
 void export_PotentialPairYukawa(pybind11::module& m);
 void export_PotentialPairEwald(pybind11::module& m);
 void export_PotentialPairMorse(pybind11::module& m);
-//~ add MorseRepulse [RHEOINF]
-void export_PotentialPairMorseRepulse(pybind11::module& m);
-//~
+void export_PotentialPairMorseRepulse(pybind11::module& m); //~ [RHEOINF]
 void export_PotentialPairMoliere(pybind11::module& m);
 void export_PotentialPairZBL(pybind11::module& m);
 void export_PotentialPairMie(pybind11::module& m);
@@ -102,10 +100,8 @@ void export_PotentialExternalWallGauss(pybind11::module& m);
 void export_PotentialExternalWallMorse(pybind11::module& m);
 
 void export_PotentialPairDPDThermoDPD(pybind11::module& m);
+void export_PotentialPairDPDThermoDPDMorse(pybind11::module& m); //~ [RHEOINF]
 void export_PotentialPairDPDThermoLJ(pybind11::module& m);
-//~ add DPDMorse [RHEOINF] 
-void export_PotentialPairDPDThermoDPDMorse(pybind11::module& m);
-//~
 
 void export_IntegratorTwoStep(pybind11::module& m);
 void export_IntegrationMethodTwoStep(pybind11::module& m);
@@ -142,6 +138,8 @@ void export_TwoStepRATTLELangevinGyroid(pybind11::module& m);
 void export_TwoStepRATTLELangevinPlane(pybind11::module& m);
 void export_TwoStepRATTLELangevinPrimitive(pybind11::module& m);
 void export_TwoStepRATTLELangevinSphere(pybind11::module& m);
+/* RPY [RHEOINF] */
+void export_TwoStepRPY(pybind11::module& m);
 
 void export_TwoStepRATTLENVECylinder(pybind11::module& m);
 void export_TwoStepRATTLENVEDiamond(pybind11::module& m);
@@ -247,6 +245,7 @@ void export_PotentialExternalWallGaussGPU(pybind11::module& m);
 void export_PotentialExternalWallMorseGPU(pybind11::module& m);
 
 void export_PotentialPairDPDThermoDPDGPU(pybind11::module& m);
+void export_PotentialPairDPDThermoDPDMorseGPU(pybind11::module& m); //~ [RHEOINF]
 void export_PotentialPairDPDThermoLJGPU(pybind11::module& m);
 
 void export_TwoStepConstantVolumeGPU(pybind11::module& m);
@@ -255,6 +254,8 @@ void export_TwoStepBDGPU(pybind11::module& m);
 void export_TwoStepConstantPressureGPU(pybind11::module& m);
 void export_FIREEnergyMinimizerGPU(pybind11::module& m);
 void export_MuellerPlatheFlowGPU(pybind11::module& m);
+/* RPY [RHEOINF] */
+void export_TwoStepRPYGPU(pybind11::module& m);
 
 void export_TwoStepRATTLEBDGPUCylinder(pybind11::module& m);
 void export_TwoStepRATTLEBDGPUDiamond(pybind11::module& m);
@@ -326,9 +327,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairYukawa(m);
     export_PotentialPairEwald(m);
     export_PotentialPairMorse(m);
-    //~ add MorseRepulase [RHEOINF]
-    export_PotentialPairMorseRepulse(m);
-    //~
+    export_PotentialPairMorseRepulse(m); //~ [RHEOINF]
     export_PotentialPairMoliere(m);
     export_PotentialPairZBL(m);
     export_PotentialPairMie(m);
@@ -354,10 +353,8 @@ PYBIND11_MODULE(_md, m)
     export_AnisoPotentialPairGB(m);
 
     export_PotentialPairDPDThermoDPD(m);
+    export_PotentialPairDPDThermoDPDMorse(m); //~ [RHEOINF]
     export_PotentialPairDPDThermoLJ(m);
-    //~ add DPDMorse [RHEOINF] 
-    export_PotentialPairDPDThermoDPDMorse(m);
-    //~
 
     export_PotentialBondHarmonic(m);
     export_PotentialBondFENE(m);
@@ -431,6 +428,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialRevCrossGPU(m);
 
     export_PotentialPairDPDThermoDPDGPU(m);
+    export_PotentialPairDPDThermoDPDMorseGPU(m); //~ [RHEOINF]
     export_PotentialPairDPDThermoLJGPU(m);
 
     export_AnisoPotentialPairALJ2DGPU(m);
@@ -499,6 +497,8 @@ PYBIND11_MODULE(_md, m)
     export_AlchemostatTwoStep(m);
     export_TwoStepNVTAlchemy(m);
     export_HalfStepHook(m);
+    /* RPY */
+    export_TwoStepRPY(m);
 
     // RATTLE
     export_TwoStepRATTLEBDCylinder(m);
@@ -532,6 +532,8 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepConstantPressureGPU(m);
     export_FIREEnergyMinimizerGPU(m);
     export_MuellerPlatheFlowGPU(m);
+    /* RPY */
+    export_TwoStepRPYGPU(m);
 
     export_TwoStepRATTLEBDGPUCylinder(m);
     export_TwoStepRATTLEBDGPUDiamond(m);

@@ -5,12 +5,13 @@
 #
 # This file:
 #   Written by Dr. Deepak Mangal 
+#   Added GPU component by Mingyang Tan
 #   Documentation by Rob Campbell (2024)
 
 ########## Created by Rheoinformatic ##~ [RHEOINF] ##########
 
 """Implement BoxResize."""
-
+import hoomd
 from hoomd.operation import Updater
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.variant import Variant, Constant
@@ -36,6 +37,11 @@ class BoxShear(Updater):
 
     def _attach_hook(self):
         group = self._simulation.state._get_group(self.filter)
-        self._cpp_obj = _hoomd.BoxShearUpdater(
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            self._cpp_obj = _hoomd.BoxShearUpdater(
             self._simulation.state._cpp_sys_def, self.trigger, self.vinf, self.deltaT, self.flip, group)
+        else:
+            self._cpp_obj = _hoomd.BoxShearUpdaterGPU(
+            self._simulation.state._cpp_sys_def, self.trigger, self.vinf, self.deltaT, self.flip, group)
+        
         super()._attach_hook()

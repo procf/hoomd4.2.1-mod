@@ -21,8 +21,11 @@ hipError_t gpu_box_resize_scale(Scalar4* d_pos,
 
 hipError_t gpu_box_resize_wrap(const unsigned int N,
                                Scalar4* d_pos,
+                               Scalar4* d_vel,
                                int3* d_image,
-                               const BoxDim& new_box,
+                            //    const BoxDim& new_box,
+                               const BoxDim& local_box, //~ [RHEOINF]
+                               Scalar cur_vel, //~ [RHEOINF]
                                unsigned int block_size);
 
     } // end namespace kernel

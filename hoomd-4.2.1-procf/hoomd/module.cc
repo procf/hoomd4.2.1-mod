@@ -54,6 +54,7 @@
 // include GPU classes
 #ifdef ENABLE_HIP
 #include "BoxResizeUpdaterGPU.h"
+#include "BoxShearUpdaterGPU.h" //~ add BoxShear [RHEOINF]
 #include "CellListGPU.h"
 #include "LoadBalancerGPU.h"
 #include "SFCPackTunerGPU.h"
@@ -323,6 +324,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_UpdaterRemoveDrift(m);
 #ifdef ENABLE_HIP
     export_BoxResizeUpdaterGPU(m);
+    export_BoxShearUpdaterGPU(m); //~ add BoxShear [RHEOINF]
 #endif
 
     // tuners

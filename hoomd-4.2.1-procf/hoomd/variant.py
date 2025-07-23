@@ -350,6 +350,16 @@ class Cosinusoid(_hoomd.VariantCosinusoid, Variant):
     __eq__ = Variant._private_eq
 ##~
 
+##~ add Toggled Shear [RHEOINF]
+class ToggleShear(_hoomd.VariantToggle, Variant):
+    _eq_attrs = ("value", "t_start", "t_ramp")
+
+    def __init__(self, value, t_start, t_ramp):
+        Variant.__init__(self)
+        _hoomd.VariantToggle.__init__(self, value, t_start, t_ramp)
+
+    __eq__ = Variant._private_eq
+##~
 
 variant_like = typing.Union[Variant, float]
 """

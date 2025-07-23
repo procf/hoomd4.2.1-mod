@@ -3365,6 +3365,11 @@ void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
         ArrayHandle<Scalar> d_net_virial(getNetVirial(),
                                          access_location::device,
                                          access_mode::read);
+        //~ add virial_ind [RHEOINF] 
+        ArrayHandle<Scalar> d_net_virial_ind(getNetVirialInd(),
+                                         access_location::device,
+                                         access_mode::readwrite);
+	    //~
         ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
 
         // access alternate particle data arrays to write to
@@ -3401,6 +3406,11 @@ void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
         ArrayHandle<Scalar> d_net_virial_alt(m_net_virial_alt,
                                              access_location::device,
                                              access_mode::overwrite);
+        //~ add virial_ind [RHEOINF] 
+        ArrayHandle<Scalar> d_net_virial_ind_alt(m_net_virial_ind_alt,
+                                                 access_location::device,
+                                                 access_mode::overwrite);
+        //~
         ArrayHandle<unsigned int> d_tag_alt(m_tag_alt,
                                             access_location::device,
                                             access_mode::overwrite);
@@ -3443,6 +3453,8 @@ void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
                                              d_net_torque.data,
                                              d_net_virial.data,
                                              (unsigned int)getNetVirial().getPitch(),
+                                             d_net_virial_ind.data, //~ [RHEOINF]
+                                             (unsigned int)getNetVirialInd().getPitch(), //~ [RHEOINF]
                                              d_tag.data,
                                              d_rtag.data,
                                              d_pos_alt.data,
@@ -3458,6 +3470,7 @@ void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
                                              d_net_force_alt.data,
                                              d_net_torque_alt.data,
                                              d_net_virial_alt.data,
+                                             d_net_virial_ind_alt.data, //~ [RHEOINF]
                                              d_tag_alt.data,
                                              d_out.data,
                                              d_comm_flags.data,
@@ -3503,6 +3516,7 @@ void ParticleData::removeParticlesGPU(GlobalVector<detail::pdata_element>& out,
     swapNetForce();
     swapNetTorque();
     swapNetVirial();
+    swapNetVirialInd(); //~ add virial_ind [RHEOINF]
     swapTags();
 
     // notify subscribers
@@ -3554,6 +3568,11 @@ void ParticleData::addParticlesGPU(const GlobalVector<detail::pdata_element>& in
         ArrayHandle<Scalar> d_net_virial(getNetVirial(),
                                          access_location::device,
                                          access_mode::readwrite);
+        //~ add virial_ind [RHEOINF] 
+        ArrayHandle<Scalar> d_net_virial_ind(getNetVirialInd(),
+                                         access_location::device,
+                                         access_mode::readwrite);
+	    //~
         ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_rtag(getRTags(),
                                          access_location::device,
@@ -3582,6 +3601,8 @@ void ParticleData::addParticlesGPU(const GlobalVector<detail::pdata_element>& in
                                         d_net_torque.data,
                                         d_net_virial.data,
                                         (unsigned int)getNetVirial().getPitch(),
+                                        d_net_virial_ind.data, //~ [RHEOINF]
+                                        (unsigned int)getNetVirialInd().getPitch(), //~ [RHEOINF]
                                         d_tag.data,
                                         d_rtag.data,
                                         d_in.data,
@@ -3676,6 +3697,13 @@ void ParticleData::setGPUAdvice()
                               sizeof(Scalar) * nelem,
                               cudaMemAdviseSetPreferredLocation,
                               gpu_map[idev]);
+            //~ add virial_ind [RHEOINF] 
+            for (unsigned int i = 0; i < 5; ++i)
+                cudaMemAdvise(m_net_virial_ind.get() + i * m_net_virial_ind.getPitch() + range.first,
+                              sizeof(Scalar) * nelem,
+                              cudaMemAdviseSetPreferredLocation,
+                              gpu_map[idev]);
+            //~
             cudaMemAdvise(m_net_torque.get() + range.first,
                           sizeof(Scalar4) * nelem,
                           cudaMemAdviseSetPreferredLocation,
@@ -3716,6 +3744,12 @@ void ParticleData::setGPUAdvice()
                 cudaMemPrefetchAsync(m_net_virial.get() + i * m_net_virial.getPitch() + range.first,
                                      sizeof(Scalar) * nelem,
                                      gpu_map[idev]);
+            //~ add virial_ind [RHEOINF] 
+            for (unsigned int i = 0; i < 5; ++i)
+                cudaMemPrefetchAsync(m_net_virial_ind.get() + i * m_net_virial_ind.getPitch() + range.first,
+                                     sizeof(Scalar) * nelem,
+                                     gpu_map[idev]);
+            //~
             cudaMemPrefetchAsync(m_net_torque.get() + range.first,
                                  sizeof(Scalar4) * nelem,
                                  gpu_map[idev]);
@@ -3786,6 +3820,14 @@ void ParticleData::setGPUAdvice()
                                   sizeof(Scalar) * nelem,
                                   cudaMemAdviseSetPreferredLocation,
                                   gpu_map[idev]);
+                //~ add virial_ind [RHEOINF]
+                for (unsigned int i = 0; i < 5; ++i)
+                    cudaMemAdvise(m_net_virial_ind_alt.get() + i * m_net_virial_ind_alt.getPitch()
+                                      + range.first,
+                                  sizeof(Scalar) * nelem,
+                                  cudaMemAdviseSetPreferredLocation,
+                                  gpu_map[idev]);
+                //~
                 cudaMemAdvise(m_net_torque_alt.get() + range.first,
                               sizeof(Scalar4) * nelem,
                               cudaMemAdviseSetPreferredLocation,
@@ -3832,6 +3874,13 @@ void ParticleData::setGPUAdvice()
                                              + range.first,
                                          sizeof(Scalar) * nelem,
                                          gpu_map[idev]);
+                //~ add virial_ind [RHEOINF]
+                for (unsigned int i = 0; i < 5; ++i)
+                    cudaMemPrefetchAsync(m_net_virial_ind_alt.get() + i * m_net_virial_ind_alt.getPitch()
+                                             + range.first,
+                                         sizeof(Scalar) * nelem,
+                                         gpu_map[idev]);
+                //~
                 cudaMemPrefetchAsync(m_net_torque_alt.get() + range.first,
                                      sizeof(Scalar4) * nelem,
                                      gpu_map[idev]);

@@ -32,13 +32,14 @@ class PYBIND11_EXPORT BoxResizeUpdaterGPU : public BoxResizeUpdater
                         std::shared_ptr<BoxDim> box1,
                         std::shared_ptr<BoxDim> box2,
                         std::shared_ptr<Variant> variant,
+                        std::shared_ptr<Variant> vinf, //~ add vinf [RHEOINF]
                         std::shared_ptr<ParticleGroup> m_group);
 
     /// Destructor
     virtual ~BoxResizeUpdaterGPU();
 
     /// Scale particles to the new box and wrap any others back into the box
-    virtual void scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim& new_box);
+    virtual void scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim& new_box, Scalar cur_vel); //~ add velocity [RHEOINF]
 
     private:
     /// Autotuner for block size (scale kernel).

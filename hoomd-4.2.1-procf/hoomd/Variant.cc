@@ -253,6 +253,29 @@ void export_Variant(pybind11::module& m)
             }));
     //~
 
+    //~ add Toggled Shear
+    pybind11::class_<VariantToggle, Variant, std::shared_ptr<VariantToggle>>(m, "VariantToggle")
+        .def(pybind11::init<Scalar, uint64_t, uint64_t>(),
+             pybind11::arg("value"),
+             pybind11::arg("t_start"),
+             pybind11::arg("t_ramp"))
+        .def_property("value", &VariantToggle::getValue, &VariantToggle::setValue)
+        .def_property("t_start", &VariantToggle::getTStart, &VariantToggle::setTStart)
+        .def_property("t_ramp", &VariantToggle::getTRamp, &VariantToggle::setTRamp)
+        .def(pybind11::pickle(
+            [](const VariantToggle& variant)
+            {
+                return pybind11::make_tuple(variant.getValue(),
+                                            variant.getTStart(),
+                                            variant.getTRamp());
+            },
+            [](pybind11::tuple params)
+            {
+                return VariantToggle(params[0].cast<Scalar>(),
+                                     params[1].cast<uint64_t>(),
+                                     params[2].cast<uint64_t>());
+            }));
+
     m.def("_test_variant_call", &testVariantCall);
     m.def("_test_variant_min", &testVariantMin);
     m.def("_test_variant_max", &testVariantMax);

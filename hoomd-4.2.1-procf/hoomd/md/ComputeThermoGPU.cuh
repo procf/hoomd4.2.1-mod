@@ -24,15 +24,19 @@ struct compute_thermo_args
     {
     Scalar4* d_net_force;              //!< Net force / pe array to sum
     Scalar* d_net_virial;              //!< Net virial array to sum
+    Scalar* d_net_virial_ind;          //!< Net independent virial array to sum [RHEOINF]
     Scalar4* d_orientation;            //!< Particle data orientations
     Scalar4* d_angmom;                 //!< Particle data conjugate quaternions
     Scalar3* d_inertia;                //!< Particle data moments of inertia
     size_t virial_pitch;               //!< Pitch of 2D net_virial array
+    size_t virial_ind_pitch;           //!< Pitch of 2D net_ind_virial array [RHEOINF]
     Scalar ndof;                       //!< Number of degrees of freedom for T calculation
     unsigned int D;                    //!< Dimensionality of the system
     Scalar4* d_scratch;                //!< n_blocks elements of scratch space for partial sums
     Scalar* d_scratch_pressure_tensor; //!< n_blocks*6 elements of scratch space for partial sums of
                                        //!< the pressure tensor
+    Scalar* d_scratch_virial_ind_tensor; //!< n_blocks*5 elements of scratch space for partial sums of 
+                                         //!< the independent virial tensor [RHEOINF]
     Scalar* d_scratch_rot;             //!< Scratch space for rotational kinetic energy partial sums
     unsigned int block_size;           //!< Block size to execute on the GPU
     unsigned int n_blocks; //!< Number of blocks to execute / n_blocks * block_size >= group_size
@@ -56,6 +60,7 @@ hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
                                       const compute_thermo_args& args,
                                       bool compute_pressure_tensor,
                                       bool compute_rotational_energy,
+                                      bool compute_virial_ind_tensor, //~ [RHEOINF]
                                       const GPUPartition& gpu_partition);
 
 //! Computes the final sums of thermodynamic properties for ComputeThermo
@@ -68,7 +73,8 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
                                     const BoxDim& box,
                                     const compute_thermo_args& args,
                                     bool compute_pressure_tensor,
-                                    bool compute_rotational_energy);
+                                    bool compute_rotational_energy,
+                                    bool compute_virial_ind_tensor); //~ [RHEOINF]
 
     } // end namespace kernel
     } // end namespace md

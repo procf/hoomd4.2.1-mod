@@ -146,7 +146,9 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
     {
     public:
     //! Construct the integrator
-    IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<CellList> cl);
+    IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefinition> sysdef,
+                          std::shared_ptr<Variant> vinf, //~ add vinf [RHEOINF]
+                          std::shared_ptr<CellList> cl); 
     //! Destructor
     virtual ~IntegratorHPMCMonoGPU();
 
@@ -284,8 +286,9 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
 
 template<class Shape>
 IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                    std::shared_ptr<CellList> cl)
-    : IntegratorHPMCMono<Shape>(sysdef), m_cl(cl), m_update_order(this->m_exec_conf)
+                                                    std::shared_ptr<Variant> vinf, //~ add vinf [RHEOINF]
+                                                    std::shared_ptr<CellList> cl) 
+    : IntegratorHPMCMono<Shape>(sysdef, vinf), m_cl(cl), m_update_order(this->m_exec_conf)
     {
     this->m_cl->setRadius(1);
     this->m_cl->setComputeTypeBody(false);
@@ -2091,7 +2094,7 @@ void export_IntegratorHPMCMonoGPU(pybind11::module& m, const std::string& name)
     pybind11::class_<IntegratorHPMCMonoGPU<Shape>,
                      IntegratorHPMCMono<Shape>,
                      std::shared_ptr<IntegratorHPMCMonoGPU<Shape>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Variant>, std::shared_ptr<CellList>>())
 #ifdef ENABLE_MPI
         .def("setNtrialCommunicator", &IntegratorHPMCMonoGPU<Shape>::setNtrialCommunicator)
         .def("setParticleCommunicator", &IntegratorHPMCMonoGPU<Shape>::setParticleCommunicator)

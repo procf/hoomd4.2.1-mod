@@ -2019,7 +2019,8 @@ void CommunicatorGPU::migrateParticles()
             const BoxDim shifted_box = getShiftedBox();
 
             // Apply boundary conditions
-            gpu_wrap_particles(n_recv_tot, d_gpu_recvbuf.data, shifted_box);
+            //~ and update velocity when crossing y-boundary [RHEOINF]
+            gpu_wrap_particles(n_recv_tot, d_gpu_recvbuf.data, shifted_box, m_SR);
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
@@ -2341,7 +2342,8 @@ void CommunicatorGPU::exchangeGhosts()
                                                              access_location::device,
                                                              access_mode::overwrite);
 
-            const BoxDim global_box = m_pdata->getGlobalBox();
+            // const BoxDim global_box = m_pdata->getGlobalBox();
+            const BoxDim shifted_box = getShiftedBox(); //~ [RHEOINF]
             const Index3D& di = m_pdata->getDomainDecomposition()->getDomainIndexer();
             uint3 my_pos = m_pdata->getDomainDecomposition()->getGridPos();
 
@@ -2374,7 +2376,9 @@ void CommunicatorGPU::exchangeGhosts()
                                      flags[comm_flag::orientation],
                                      di,
                                      my_pos,
-                                     global_box);
+                                     //global_box,
+                                     shifted_box, //~ [RHEOINF]
+                                     m_SR);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -2964,7 +2968,8 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                                                              access_location::device,
                                                              access_mode::overwrite);
 
-            const BoxDim global_box = m_pdata->getGlobalBox();
+            // const BoxDim global_box = m_pdata->getGlobalBox();
+            const BoxDim shifted_box = getShiftedBox(); //~ [RHEOINF]
             const Index3D& di = m_pdata->getDomainDecomposition()->getDomainIndexer();
             uint3 my_pos = m_pdata->getDomainDecomposition()->getGridPos();
 
@@ -2997,7 +3002,9 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                                      flags[comm_flag::orientation],
                                      di,
                                      my_pos,
-                                     global_box);
+                                    //  global_box,
+                                     shifted_box, //~ [RHEOINF]
+                                     m_SR); //~ [RHEOINF]
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();

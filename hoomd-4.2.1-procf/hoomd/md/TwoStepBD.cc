@@ -94,10 +94,10 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
     Scalar shear_rate = this->m_SR;
     //std::cout << shear_rate << std::endl;
     //~
-
     // perform the first half step
     // r(t+deltaT) = r(t) + (Fc(t) + Fr)*deltaT/gamma
     // v(t+deltaT) = random distribution consistent with T
+    
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
@@ -264,6 +264,7 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 }
             }
         }
+    
     }
 
 /*! @param timestep Current time step

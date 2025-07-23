@@ -10,6 +10,8 @@ File lists are formatted as: `folder/`; file
 * [Polydispersity](/changelog.md#polydispersity) : Track and use particle radii for surface-surface distance (h_ij) calculations, option to scale D0 by particle size to mimic size-dependent depletion (Rob)
 * [On/Off Contact Force](/changelog.md#on-off-contact-force) : Add the ability to remove contact force and replace it with Morse repulsion (Sasha)
 * [Bond tracking](/changelog.md#bond-tracking) : Track bond formation and breaking (Nabi, Deepak, and Rob)
+* [GPU](/changelog.md#gpu-compatability) : GPU compatability (Mingyang)
+* [RPY](/changelog.md#rpy) : RPY full Stokesian hydrodynamics (Mingyang)
 * [Walls](/changelog.md#walls) : Wall options: flat or converging diverging (Josh)
 * [Pressure-driven flow](/changelog.md#pressure-driven-flow) : make sure charge is available for body force (Deepak)
 * [Morse with Repulsion](/changelog.md#morse-with-repulsion) : Add two repulsive options to Morse, Electrostatic repulsion and Yukawa repulsion (Rob)
@@ -186,6 +188,83 @@ Track bond formation and breaking (Nabi, Deepak, and Rob)
 * [x] `hoomd/`
 	* [x] `md/`
 		* [x] PotentialPairDPDThermo.h : **charge**
+
+
+## GPU compatability
+Add GPU compatability for our modifications (note: the "thermodynamic logger" currently does not work with GPU sims due to virial_ind update issues)
+* [x] `hoomd/`
+	* [x] BoxResizeUpdaterGPU.cc
+	* [x] BoxResizeUpdaterGPU.cuh
+	* [x] BoxResizeUpdaterGPU.cu
+	* [x] BoxResizeUpdaterGPU.h
+	* [x] BoxShearUpdater.cc
+	* [x] BoxShearUpdater.h
+	* [x] BoxShearUpdaterGPU.cc
+	* [x] BoxShearUpdaterGPU.cuh
+	* [x] BoxShearUpdaterGPU.cu
+	* [x] BoxShearUpdaterGPU.h
+	* [x] CMakeLists.txt
+	* [x] CommunicatorGPU.cc
+	* [x] CommunicatorGPU.cuh
+	* [x] CommunicatorGPU.cu
+	* [x] Integrator.cc
+	* [x] Integrator.cuh
+	* [x] Integrator.cu
+	* [x] ParticleData.cc
+	* [x] ParticleData.cuh
+	* [x] ParticleData.cu
+	* [x] RNGIdentifiers.h
+	* [x] Variant.cc
+	* [x] Variant.h
+	* [x] `hpmc/`
+ 		* [x] IntegratorHPMCMonoGPU.h
+	* [x] `md/`
+		* [x] CMakeLists.txt
+		* [x] ComputeThermoGPU.cc
+		* [x] ComputeThermoGPU.cuh
+		* [x] ComputeThermoGPU.cu
+		* [x] ComputeThermoGPU.h
+		* [x] ComputeThermoTypes.h
+		* [x] FIREEnergyMinimizerGPU.cc
+		* [x] FIREEnergyMinimizerGPU.h
+		* [x] PotentialPairDPDThermo.h
+		* [x] PotentialPairDPDThermoGPU.cuh
+		* [x] PotentialPairDPDThermoGPU.h
+		* [x] PotentialPairGPU.cuh
+		* [x] PotentialPairGPU.h
+		* [x] TwoStepBD.cc
+		* [x] TwoStepBDGPU.cc
+		* [x] TwoStepBDGPU.cuh
+		* [x] TwoStepBDGPU.cu
+		* [x] TwoStepConstantVolumeGPU.cc
+		* [x] TwoStepConstantVolumeGPU.cuh
+		* [x] TwoStepConstantVolumeGPU.cu
+		* [x] TwoStepLangevinGPU.cc
+		* [x] TwoStepLangevinGPU.cuh
+		* [x] TwoStepLangevinGPU.cu
+		* [x] `methods/`
+		      	* [x] __init__.py
+		      	* [x]methods.py
+        	* [x] module-md.cc
+	* [x] module.cc
+	* [x] `pytest/`
+		* [x] pytest-openmpi.sh
+	* [x] `update/`
+		* [x] box_resize.py
+		* [x] box_shear.py
+	* [x] variant.py
+
+
+## RPY
+Full Stokesian hydrodynamics
+* [x] `hoomd/`
+	* [x] `md/`
+		* [x] TwoStepRPY.cc
+		* [x] TwoStepRPY.h
+		* [x] TwoStepRPYGPU.cc
+		* [x] TwoStepRPYGPU.cuh
+		* [x] TwoStepRPYGPU.cu
+		* [x] TwoStepRPYGPU.h
 
 ## Walls
 Wall options: flat or converging diverging (Josh)

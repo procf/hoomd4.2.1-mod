@@ -47,6 +47,11 @@ struct pair_args_t
     pair_args_t(Scalar4* _d_force,
                 Scalar* _d_virial,
                 const size_t _virial_pitch,
+                //~ add virial_ind [RHEOINF]
+                Scalar* _d_virial_ind,
+                const size_t _virial_ind_pitch,
+                //~ add diameter [RHEOINF]
+                Scalar* _d_diameter,
                 const unsigned int _N,
                 const unsigned int _n_max,
                 const Scalar4* _d_pos,
@@ -65,7 +70,7 @@ struct pair_args_t
                 const unsigned int _threads_per_particle,
                 const GPUPartition& _gpu_partition,
                 const hipDeviceProp_t& _devprop)
-        : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
+        : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), d_virial_ind(_d_virial_ind), virial_ind_pitch(_virial_ind_pitch), d_diameter(_d_diameter), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_charge(_d_charge), box(_box), d_n_neigh(_d_n_neigh), d_nlist(_d_nlist),
           d_head_list(_d_head_list), d_rcutsq(_d_rcutsq), d_ronsq(_d_ronsq),
           size_neigh_list(_size_neigh_list), ntypes(_ntypes), block_size(_block_size),
@@ -76,6 +81,10 @@ struct pair_args_t
     Scalar4* d_force;          //!< Force to write out
     Scalar* d_virial;          //!< Virial to write out
     const size_t virial_pitch; //!< The pitch of the 2D array of virial matrix elements
+    //~ [RHEOINF]
+    Scalar* d_virial_ind;          //!< Independent Virial to write out [RHEOINF]
+    const size_t virial_ind_pitch; //!< The pitch of the 2D array of independent virial matrix elements [RHEOINF]
+    Scalar* d_diameter;         //!< diameters of particles [RHEOINF]  
     const unsigned int N;      //!< number of particles
     const unsigned int n_max;  //!< Max size of pdata arrays
     const Scalar4* d_pos;      //!< particle positions
@@ -146,6 +155,11 @@ __global__ void
 gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                                       Scalar* d_virial,
                                       const size_t virial_pitch,
+                                      //~ add virial_ind [RHEOINF]
+                                      Scalar* d_virial_ind,
+                                      const size_t virial_ind_pitch,
+                                      //~ add diameter [RHEOINF]
+                                      Scalar* d_diameter,
                                       const unsigned int N,
                                       const Scalar4* d_pos,
                                       const Scalar* d_charge,
@@ -227,6 +241,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
     Scalar virialyy = Scalar(0.0);
     Scalar virialyz = Scalar(0.0);
     Scalar virialzz = Scalar(0.0);
+    Scalar virialxyi_ind = Scalar(0.0); //~ add virialxyi_ind [RHEOINF]
 
     if (active)
         {
@@ -236,6 +251,12 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
         // read in the position of our particle.
         Scalar4 postypei = __ldg(d_pos + idx);
         Scalar3 posi = make_scalar3(postypei.x, postypei.y, postypei.z);
+
+        unsigned int typei = __scalar_as_int(postypei.w); //~ [RHEOINF]
+        //~ access diameter (if needed) [RHEOINF]
+        Scalar di = Scalar(0.0);
+        if (evaluator::needsDiameter())
+            di = d_diameter[idx];
 
         Scalar qi = Scalar(0);
         if (evaluator::needsCharge())
@@ -261,6 +282,8 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 Scalar4 postypej = __ldg(d_pos + cur_j);
                 Scalar3 posj = make_scalar3(postypej.x, postypej.y, postypej.z);
 
+                unsigned int typej = __scalar_as_int(postypej.w); //~ [RHEOINF]
+
                 Scalar qj = Scalar(0.0);
                 if (evaluator::needsCharge())
                     qj = __ldg(d_charge + cur_j);
@@ -273,6 +296,15 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
 
                 // calculate r squared
                 Scalar rsq = dot(dx, dx);
+
+                //~ [RHEOINF]
+                unsigned int pair_typeids[2] = {typei, typej};
+                //~ access diameter (if needed) [RHEOINF]
+                Scalar dj = Scalar(0.0);
+                if (evaluator::needsDiameter())
+                    dj = d_diameter[cur_j];
+                Scalar radcontact = Scalar(0.5) * (d_diameter[idx] + d_diameter[cur_j]);
+                //~
 
                 // access the per type pair parameters
                 unsigned int typpair
@@ -314,10 +346,13 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 Scalar force_divr = Scalar(0.0);
                 Scalar pair_eng = Scalar(0.0);
 
-                evaluator eval(rsq, rcutsq, *param);
+                evaluator eval(rsq, radcontact, pair_typeids, rcutsq, *param); //~ add radcontact, pair_typeIDs [RHEOINF]
                 if (evaluator::needsCharge())
                     eval.setCharge(qi, qj);
-
+                //~ add diameter (if needed) [RHEOINF]
+                if (evaluator::needsDiameter())
+                    eval.setDiameter(di, dj);
+                
                 eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
                 if (shift_mode == 2)
@@ -355,6 +390,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                     virialyy += dx.y * dx.y * force_div2r;
                     virialyz += dx.y * dx.z * force_div2r;
                     virialzz += dx.z * dx.z * force_div2r;
+                    virialxyi_ind += dx.x * dx.y * force_div2r; //~ add virialxyi_ind [RHEOINF]
                     }
 
                 // add up the force vector components
@@ -389,6 +425,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
         virialyy = reducer.Sum(virialyy);
         virialyz = reducer.Sum(virialyz);
         virialzz = reducer.Sum(virialzz);
+        virialxyi_ind = reducer.Sum(virialxyi_ind); //~ add virialxyi_ind [RHEOINF]
 
         // if we are the first thread in the cta, write out virial to global mem
         if (active && threadIdx.x % tpp == 0)
@@ -399,6 +436,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
             d_virial[3 * virial_pitch + idx] = virialyy;
             d_virial[4 * virial_pitch + idx] = virialyz;
             d_virial[5 * virial_pitch + idx] = virialzz;
+            d_virial_ind[0 * virial_ind_pitch + idx] = virialxyi_ind; //~ add virialxyi_ind [RHEOINF]
             }
         }
     }
@@ -505,6 +543,11 @@ struct PairForceComputeKernel
                                    pair_args.d_force,
                                    pair_args.d_virial,
                                    pair_args.virial_pitch,
+                                   //~ add virial_ind [RHEOINF]
+                                   pair_args.d_virial_ind,
+                                   pair_args.virial_ind_pitch,
+                                   //~ add diameter
+                                   pair_args.d_diameter,
                                    N,
                                    pair_args.d_pos,
                                    pair_args.d_charge,
@@ -533,6 +576,11 @@ struct PairForceComputeKernel
                                    pair_args.d_force,
                                    pair_args.d_virial,
                                    pair_args.virial_pitch,
+                                   //~ add virial_ind [RHEOINF]
+                                   pair_args.d_virial_ind,
+                                   pair_args.virial_ind_pitch,
+                                   //~ add diameter
+                                   pair_args.d_diameter,
                                    N,
                                    pair_args.d_pos,
                                    pair_args.d_charge,

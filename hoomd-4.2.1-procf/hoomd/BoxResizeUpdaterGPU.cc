@@ -23,8 +23,9 @@ BoxResizeUpdaterGPU::BoxResizeUpdaterGPU(std::shared_ptr<SystemDefinition> sysde
                                          std::shared_ptr<BoxDim> box1,
                                          std::shared_ptr<BoxDim> box2,
                                          std::shared_ptr<Variant> variant,
+                                         std::shared_ptr<Variant> vinf, //~ add vinf [RHEOINF]
                                          std::shared_ptr<ParticleGroup> group)
-    : BoxResizeUpdater(sysdef, trigger, box1, box2, variant, group)
+    : BoxResizeUpdater(sysdef, trigger, box1, box2, variant, vinf, group)
     {
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
@@ -46,9 +47,14 @@ BoxResizeUpdaterGPU::~BoxResizeUpdaterGPU()
     }
 
 /// Scale particles to the new box and wrap any others back into the box
-void BoxResizeUpdaterGPU::scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim& new_box)
+void BoxResizeUpdaterGPU::scaleAndWrapParticles(const BoxDim& cur_box, const BoxDim& new_box, Scalar cur_vel) //~ add velocity [RHEOINF]
     {
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
+                               access_location::device,
+                               access_mode::readwrite);
+
+
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
                                access_location::device,
                                access_mode::readwrite);
 
@@ -56,24 +62,30 @@ void BoxResizeUpdaterGPU::scaleAndWrapParticles(const BoxDim& cur_box, const Box
                               access_location::device,
                               access_mode::readwrite);
 
-    unsigned int group_size = m_group->getNumMembers();
+    
     ArrayHandle<unsigned int> d_group_members(m_group->getIndexArray(),
                                               access_location::device,
                                               access_mode::read);
-    m_tuner_scale->begin();
-    kernel::gpu_box_resize_scale(d_pos.data,
-                                 cur_box,
-                                 new_box,
-                                 d_group_members.data,
-                                 group_size,
-                                 m_tuner_scale->getParam()[0]);
-    m_tuner_scale->end();
+    //~ remove auto scaling/wrapping [RHEOINF]
+    // m_tuner_scale->begin();
+    // kernel::gpu_box_resize_scale(d_pos.data,
+    //                              cur_box,
+    //                              new_box,
+    //                              d_group_members.data,
+    //                              group_size,
+    //                              m_tuner_scale->getParam()[0]);
+    // m_tuner_scale->end();
 
+    //~ [RHEOINF]
+    const BoxDim& local_box = m_pdata->getBox();
     m_tuner_wrap->begin();
     kernel::gpu_box_resize_wrap(m_pdata->getN(),
                                 d_pos.data,
+                                d_vel.data, //~ [RHEOINF]
                                 d_image.data,
-                                new_box,
+                                //new_box, //~ [RHEOINF]
+                                local_box, //~ [RHEOINF]
+                                cur_vel, //~ [RHEOINF]
                                 m_tuner_wrap->getParam()[0]);
     m_tuner_wrap->end();
     }
@@ -89,6 +101,7 @@ void export_BoxResizeUpdaterGPU(pybind11::module& m)
                             std::shared_ptr<Trigger>,
                             std::shared_ptr<BoxDim>,
                             std::shared_ptr<BoxDim>,
+                            std::shared_ptr<Variant>,
                             std::shared_ptr<Variant>,
                             std::shared_ptr<ParticleGroup>>());
     }
