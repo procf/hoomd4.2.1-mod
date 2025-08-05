@@ -5,7 +5,7 @@ If the box next to a filename is NOT checked, that means the modifications have 
 
 File lists are formatted as: `folder/`; file
 
-* [Core Mods](/changelog.md#core-modifications) : Contact Force, Lubrication Force, track virial components (Nabi and Deepak)
+* [DPDMorse](/changelog.md#dpdmorse) : Enable DPD with colloids, add Contact Force, Lubrication Force, and track virial components (Nabi and Deepak)
 * [Shear Rate](/changelog.md#shear-rate) : Add shear rate for regular particles (does not include rigid bodies) (Deepak)
 * [Polydispersity](/changelog.md#polydispersity) : Track and use particle radii for surface-surface distance (h_ij) calculations, option to scale D0 by particle size to mimic size-dependent depletion (Rob)
 * [On/Off Contact Force](/changelog.md#on-off-contact-force) : Add the ability to remove contact force and replace it with Morse repulsion (Sasha)
@@ -14,12 +14,11 @@ File lists are formatted as: `folder/`; file
 * [RPY](/changelog.md#rpy) : RPY full Stokesian hydrodynamics (Mingyang)
 * [Walls](/changelog.md#walls) : Wall options: flat or converging diverging (Josh)
 * [Pressure-driven flow](/changelog.md#pressure-driven-flow) : make sure charge is available for body force (Deepak)
-* [Morse with Repulsion](/changelog.md#morse-with-repulsion) : Add two repulsive options to Morse, Electrostatic repulsion and Yukawa repulsion (Rob)
-* [Asakura-Oosawa Potential](/changelog.md#asakura-oosawa-potential) : Add AO Potential (might be incorrect calc?) (Rob)
+* [Morse with Repulsion](/changelog.md#morse-with-repulsion) : Add two repulsive options in Morse: Electrostatic repulsion and Yukawa repulsion (Rob)
 * [HPMC](/changelog.md#hpmc) : enable compilation with HPMC on (see important notes in description) (Rob)
 
-## Core Modifications
-Contact Force, Lubrication Force, track virial components (Nabi and Deepak)
+## DPDMorse
+Enable DPD solvent with Morse colloids, add contact force and lubrication force, and track virial components (Nabi and Deepak)
 - **DPDMorse**: Add a new method for evaluating the pair-forces between two particles called "DPDMorse." This method calculates the correct combination of forces for each pair of particles as described in the [background reading on DPD for Colloids](/background-reading/2-DPD-for-Colloids-18pg.pdf); i.e., the standard DPD forces plus the Morse potential, hydrodynamics (the squeezing force AKA lubrication force), and a contact force for resolving semi-hard colloid-colloid particle overlaps. (filename: `EvaluatorPairDPDThermoDPDMorse.h`)
 - **contact force**: Add a contact force to Brownian simulations for resolving semi-hard colloid-colloid particle overlaps
 - **virial_ind**: Add the ability to track the "independent virials" (AKA the virial_ind) for each particle pair. This is the contribution of each of the individual forces in the virial (conservative, dissipative, random, Morse, lubrication, and contact) in addition to the total virial component of the pressure tensor
@@ -278,7 +277,7 @@ Wall options: flat or converging diverging (Josh)
 
 
 ## Morse with Repulsion
-Adding two repulsive options to Morse
+Adding two repulsive options alongside the Morse Evaluator (could also be implemented as separate potentials)
 - **MorseRepulse**: Add the option for using two different repulsive potentials in combination with the Brownian Morse potential: Electrostatic repulsion (a la DLVO) or Yukawa repulsion. 
  * [x] `hoomd/`
 	* [x] `md/`
@@ -289,43 +288,31 @@ Adding two repulsive options to Morse
 			* [x] \_\_init\_\_.py **call MorseRepulse**
 			* [x] pair.py : **call MorseRepulse**
 
-		
-## Asakura-Oosawa Potential 
-Adding AO Potential (might be incorrect calc?) (Rob)
-- **DPDAO**: Add the Asakura-Oosawa potential as an alternative to Morse potential. This is an laternate method for evaluating the pair-forces between two particles that calculates the correct combination of forces for each pair of particles as described in the [background reading on DPD for Colloids](/background-reading/2-DPD-for-Colloids-18pg.pdf), but replaces the Morse Potential with the Asakura-Oosawa (AO) potential; i.e., the standard DPD forces plus the AO potential, hydrodynamics (the squeezing force AKA lubrication force), and a contact force for resolving semi-hard colloid-colloid particle overlaps.
- * [ ] `hoomd/`
-	* [ ] `md/`
-		* [ ] CMakeLists.txt : **set new file (EvaluatorPairDPDThermoDPDAO.h)**
-		* [ ] **[ADD NEW FILE]** EvaluatorPairDPDThermoDPDAO.h (the Asakura-Oosawa potential)
-		* [ ] `pair`
-			* [ ] \_\_init\_\_.py **call DPDAO**
-			* [ ] pair.py : **call DPDAO**
-
 
 ## HPMC
 Fix HPMC integrator to allow compilation when HPMC is enabled (for Hard Particle Monte Carlo)
 NOTE: **[IMPORTANT]** Our modifications are not designed for use with Hard Particle Monte Carlo (HPMC) simulations. HPMC is NOT included in the installation by default. If you want to run HPMC simulations with any of our modifications, you should do additional work to integrate the mods first.<br>
 Additionally, HPMC is an active area of development in HOOMD-blue. Because our software is based on HOOMD-blue v4.2.1 many important HPMC features are not included (because they had not yet been implemented/corrected/integrated in v4.2.1).
 - **vinf**: Add vinf to the HPMC integrators so they can be constructed from the modified Integrator class. This does NOT enable shear flow in HPMC sims, it only allows the HPMC integrator to correctly compile.
- * [ ] `hoomd/`
-	* [ ] `hpmd/`
-		* [ ] IntegratorHPMC.cc : **vinf**
-		* [ ] IntegratorHPMC.h : **vinf**
-		* [ ] IntegratorHPMCMono.h : **vinf**
-		* [ ] IntegratorHPMCMonoNEC.h : **vinf**
-		* [ ] module_convex_polygon.cc : **vinf**
-		* [ ] module_convex_polyhedron.cc : **vinf**
-		* [ ] module_convex_spheropolyhedron.cc : **vinf**
-		* [ ] module_ellipsoid.cc : **vinf**
-		* [ ] module_faceted_ellipsoid.cc : **vinf**
-		* [ ] module_polyhedron.cc : **vinf**
-		* [ ] module_simple_polygon.cc : **vinf**
-		* [ ] module_sphere.cc : **vinf**
-		* [ ] module_spheropolygon.cc : **vinf**
-		* [ ] module_sphinx.cc : **vinf**
-		* [ ] module_union_convex_polyhedron.cc : **vinf**
-		* [ ] module_union_faceted_ellipsoid.cc : **vinf**
-		* [ ] module_union_sphere.cc : **vinf**
+ * [x] `hoomd/`
+	* [x] `hpmd/`
+		* [x] IntegratorHPMC.cc : **vinf**
+		* [x] IntegratorHPMC.h : **vinf**
+		* [x] IntegratorHPMCMono.h : **vinf**
+		* [x] IntegratorHPMCMonoNEC.h : **vinf**
+		* [x] module_convex_polygon.cc : **vinf**
+		* [x] module_convex_polyhedron.cc : **vinf**
+		* [x] module_convex_spheropolyhedron.cc : **vinf**
+		* [x] module_ellipsoid.cc : **vinf**
+		* [x] module_faceted_ellipsoid.cc : **vinf**
+		* [x] module_polyhedron.cc : **vinf**
+		* [x] module_simple_polygon.cc : **vinf**
+		* [x] module_sphere.cc : **vinf**
+		* [x] module_spheropolygon.cc : **vinf**
+		* [x] module_sphinx.cc : **vinf**
+		* [x] module_union_convex_polyhedron.cc : **vinf**
+		* [x] module_union_faceted_ellipsoid.cc : **vinf**
+		* [x] module_union_sphere.cc : **vinf**
 
 
 

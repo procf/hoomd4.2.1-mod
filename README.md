@@ -6,6 +6,7 @@ This repository contains the modified version of HOOMD-blue v4.2 used for colloi
 * [Example scripts](/scripts) for installing and running simulations on an HPC research cluster
 * [Citation information](/citation-guide.md) for papers published using this simulation platform
 * A [Changelog](/changelog.md) summarizing what was changed, and a full list of the files that were changed
+* [Admin tasks](/admin/README.md) including pull requests, upgrading, adding changes, and compiling for Google Colab
 
 Additional branches are available, tho they may be incomplete:
 - branch "hoomd4.2_w_wall": modifications for flat and sinusoidal walls
@@ -19,26 +20,21 @@ Contact: Rob Campbell (campbell.r@northeastern.edu)
 For any questions, or to help with modifications, contact Rob.
 
 To-Do:
-- [ ] fix bond trackign to work correctly @Rob
-	- [ ] and add bond tracking to BD/Langevin sims?
-- [ ] copy in wall mods @Josh @Rob
-	- [ ] test compile wall mods
-	- [ ] test DPD initialization, equilibrium, and gelation w/ walls
-	- [ ] test BD/Langevin sims w/ walls
-- [ ] add bond contraints and associated bond tracking @Paniz
-- [ ] remove AO from README or add AO mods @Rob
+- [ ] update Lifetime.h @Rob
+- [ ] add wall mods @Josh @Rob
+- [ ] add bond rigidity @Paniz
 -----------------
 
 ## Installation
 
-To install hoomd4.2.1-mod on Discovery:
+To install hoomd4.2.1-mod on Explorer:
 
 Login and move to the location you want to put hoomd4.2-mod
 ```bash
-ssh your-username@login.discovery.neu.edu
+ssh your-username@login.explorer.northeastern.edu
 ```
 ```bash
-cd /work/props/your-name/software/
+cd /projects/props/your-name/software/
 ```
 Make a new directory for hoomd4.2.1-mod
 ```bash
