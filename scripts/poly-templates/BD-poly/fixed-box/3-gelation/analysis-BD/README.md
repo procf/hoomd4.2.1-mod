@@ -28,7 +28,7 @@ NOTE: you will get several warnings about using a deprecated version of NumPy AP
 
 6. Once the `data` folder has been generated and all scripts are completed without errors (no content in the error file and all desired analysis stated as completed in the out file), cd into `plotting`
 
-7. Load the python module in Discovery and plot each analysis individually (adjusting the plot-style as desired) OR batch-create png files for all desired analyses (select which results to plot by commenting out unnecessary analysis from the `plotter` script and then run `plotter`)
+7. Load the python module in Explorer and plot each analysis individually (adjusting the plot-style as desired) OR batch-create png files for all desired analyses (select which results to plot by commenting out unnecessary analysis from the `plotter` script and then run `plotter`)
 ```bash
 sbatch plotter
 ```  

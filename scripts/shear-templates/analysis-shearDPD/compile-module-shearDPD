@@ -6,7 +6,8 @@
 #SBATCH -e cmpl-%A.err
 
 # compile the fortran module for use analyzing simulation data
-module load python/3.8.1
+module load miniconda3/24.11.1
+source # path to software, for example: /projects/props/Rob/software/hoomd4.2.1-mod/hoomdmod4.2.1-venv/bin/activate 
 f2py -c module_shear_analysis_DPD.f90 -m module
 
 # NOTE: error file will warn that you are using a deprecated version of NumPy API

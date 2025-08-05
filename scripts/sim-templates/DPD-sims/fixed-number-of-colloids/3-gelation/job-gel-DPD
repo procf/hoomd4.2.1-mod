@@ -6,7 +6,6 @@
 #SBATCH -t 24:00:00
 ##SBATCH -t 4-24:00:00
 ##SBATCH -p long
-#SBATCH --constraint=ib
 ##SBATCH --mem=128Gb
 #SBATCH -o %A.out
 #SBATCH -e %A.err
@@ -14,10 +13,11 @@
 start=$SECONDS
 
 module purge
-module load python/3.8.1
-source # path to software, for example: /work/props/Rob/software/hoomd4.2.1-mod/hoomdmod4.2.1-venv/bin/activate 
-module load gcc/11.1.0
-module load openmpi/4.1.2-gcc11.1
+module load miniconda3/24.11.1
+module load OpenMPI/4.1.6
+module load cuda/12.1.1
+module load OpenBLAS/0.3.29
+source # path to software, for example: /projects/props/Rob/software/hoomd4.2.1-mod/hoomdmod4.2.1-venv/bin/activate 
 mpirun python3 sim-gel-DPD.py
 
 time=$((SECONDS-start))

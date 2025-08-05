@@ -9,7 +9,7 @@ This can be useful if you want to understand what changes were made by another u
 
 1. Move to the find_changes directory (`cd find_changes`)
 2. In the bash script: `0_find_diffs`, set the "mod_dir" and "basic_dir" variables to the filepaths for the two directories you want to compare
-3. Run the `0_find_diffs` script (you can do this locally or on Discovery), which will generate two text files: 
+3. Run the `0_find_diffs` script (you can do this locally or on Explorer), which will generate two text files: 
 	- "uniquefiles.txt" a list of all files unique to one of the directories (i.e. new files that have been added) *NOTE: this includes .git files and other files that may not be significant*
 	- "changedfiles.txt" a list of all files that have had their content modified 
 4. [FILES ADDED] Use the list of unique files to determine which new files have been added

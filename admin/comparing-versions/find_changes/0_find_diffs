@@ -1,6 +1,6 @@
 #!/bin/bash
 
-### options for running on Discovery
+### options for running on Explorer
 ##SBATCH -J diffchk
 ##SBATCH -n 1 -N 1
 ##SBATCH -t 1:00:00
