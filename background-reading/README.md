@@ -1,10 +1,10 @@
 # Background Reading
 
 For a quick (but comprehensive) overview of our simulation methods, see the PDF background guides:
-1. [Intro to DPD](/Background-Reading/1-DPD-8pg.pdf)
-2. [Modifying DPD for colloids simulations](/Background-Reading/2-DPD-for-Colloids-18pg.pdf)
-3. [Morse Potential](/Background-Reading/3-Morse-Potential-2pg.pdf)
-4. [Applying shear to colloid simualtion](/Background-Reading/4-Shearing-4pg.pdf)
+1. [Intro to DPD](/background-reading/1-DPD-8pg.pdf)
+2. [Modifying DPD for colloids simulations](/background-reading/2-DPD-for-Colloids-18pg.pdf)
+3. [Morse Potential](/background-reading/3-Morse-Potential-2pg.pdf)
+4. [Applying shear to colloid simualtion](/background-reading/4-Shearing-4pg.pdf)
 
 For more background on DPD itself, see these research papers:
 * General DPD infromation: Groot & Warren "[Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulation]" (1997)
