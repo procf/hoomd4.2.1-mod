@@ -1,5 +1,10 @@
 # hoomd4.2.1-mod
 
+Try out our DPD code! <br>
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/procf/hoomd4.2.1-mod/blob/main/RheoinformaticDPD.ipynb)
+
+---
+
 This repository contains the modified version of HOOMD-blue v4.2 used for colloid simulations in the Rheoinformatic group. It also includes: 
 * [Installation instructions](/README.md#installation)
 * [Background Reading](/background-reading) about how these simulations work
