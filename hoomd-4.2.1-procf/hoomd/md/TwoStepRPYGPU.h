@@ -62,6 +62,8 @@ class PYBIND11_EXPORT TwoStepRPYGPU : public TwoStepRPY
                   Scalar error);
     virtual ~TwoStepRPYGPU();
 
+    void setParams() override;
+
     //! Helper function to set up mesh
     void setupMesh();
 

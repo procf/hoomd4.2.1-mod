@@ -331,17 +331,17 @@ void gpu_compute_wave_value(const uint3 mesh_dim,
     hipFuncAttributes attr;
     hipFuncGetAttributes(&attr, (const void*)gpu_compute_wave_value_kernel); //hipFuncGetAttributes(&attr, (const void*)gpu_compute_wave_value_kernel<true>);
     max_block_size = attr.maxThreadsPerBlock;
-    std::cout << "CU: In Wave Computation" << std::endl;
-    std::cout << "max block size = " << max_block_size << std::endl;
+    // std::cout << "CU: In Wave Computation" << std::endl;
+    // std::cout << "max block size = " << max_block_size << std::endl;
     unsigned int run_block_size = min(max_block_size, block_size);
     unsigned int n_blocks = num_wave_vectors / run_block_size;
     if (num_wave_vectors % run_block_size)
         {
         n_blocks += 1;
         }
-    std::cout << "number of blocks = " << n_blocks << std::endl;
-    std::cout << "number of threads per block = " << run_block_size << std::endl;
-    std::cout << std::endl;
+    // std::cout << "number of blocks = " << n_blocks << std::endl;
+    // std::cout << "number of threads per block = " << run_block_size << std::endl;
+    // std::cout << std::endl;
     dim3 grid(n_blocks, 1, 1);
     hipLaunchKernelGGL
         ((gpu_compute_wave_value_kernel),
@@ -641,10 +641,6 @@ __global__ void gpu_assign_particle_force_kernel(const uint3 mesh_dim,
     int j = bin_coord.y;
     int k = bin_coord.z;
 
-    bool ignore_x = false;
-    bool ignore_y = false;
-    bool ignore_z = false;
-
     for (int l = nlower; l <= nupper; l++)
         {
         int neighi = i + l;
@@ -691,25 +687,11 @@ __global__ void gpu_assign_particle_force_kernel(const uint3 mesh_dim,
                 myAtomicAdd(&d_mesh_Fx[cell_idx].x, F.x * fac);
                 myAtomicAdd(&d_mesh_Fy[cell_idx].x, F.y * fac);
                 myAtomicAdd(&d_mesh_Fz[cell_idx].x, F.z * fac);
-
-                // if (!ignore_x && !ignore_y && !ignore_z)
-                //     {
-                //     unsigned int cell_idx = neighi + bin_dim.x * (neighj + bin_dim.y * neighk);
-                //     Scalar r2 = rx * rx + ry * ry + rz * rz;
-                //     Scalar fac = gauss_fac * exp(- gauss_exp * r2);
-                //     printf("Particle %u: cell %u, r2 = %f, xfac = %f, yfac = %f, zfac = %f\n", idx, cell_idx, r2, F.x * fac, F.y * fac, F.z * fac);
-                //     myAtomicAdd(&d_mesh_Fx[cell_idx].x, F.x * fac);
-                //     myAtomicAdd(&d_mesh_Fy[cell_idx].x, F.y * fac);
-                //     myAtomicAdd(&d_mesh_Fz[cell_idx].x, F.z * fac);
-                //     }
                 
-                ignore_z = false;
                 } // for n
-            
-            ignore_y = false;
+
             } // for m
         
-        ignore_x = false;
         } // for l
     
     } /* end of gpu_assign_particle_force_kernel */
@@ -1970,6 +1952,8 @@ __global__ void gpu_rpy_step_one_kernel(const unsigned int nwork,
                                         const unsigned int offset,
                                         const unsigned int * d_index_array,
                                         BoxDim box,
+                                        const Scalar3 L,
+                                        const Scalar shear_rate,
                                         int3 * d_image,
                                         const Scalar dt,
                                         Scalar4 * d_vel,
@@ -1981,15 +1965,21 @@ __global__ void gpu_rpy_step_one_kernel(const unsigned int nwork,
         unsigned int group_idx = local_idx + offset;
         unsigned int idx = d_index_array[group_idx];
 
+
         Scalar4 pos = d_pos[idx];
         Scalar4 vel = d_vel[idx];
         int3 image = d_image[idx];
 
-        pos.x += vel.x * dt;
+        Scalar vinf = shear_rate * pos.y / L.y;
+
+        pos.x += vel.x * dt + vinf * dt;
         pos.y += vel.y * dt;
         pos.z += vel.z * dt;
 
+        int img0 = image.y;
         box.wrap(pos, image);
+        img0 -= image.y;
+        vinf += (img0 * shear_rate);
 
         d_pos[idx] = pos;
         d_image[idx] = image;
@@ -2000,6 +1990,7 @@ __global__ void gpu_rpy_step_one_kernel(const unsigned int nwork,
 void gpu_rpy_step_one(const unsigned int group_size,
                       const unsigned int * d_index_array,
                       const BoxDim& box,
+                      const Scalar shear_rate,
                       int3 * d_image,
                       const Scalar dt,
                       Scalar4 * d_vel,
@@ -2023,6 +2014,8 @@ void gpu_rpy_step_one(const unsigned int group_size,
             }
         // std::cout << "number of blocks = " << n_blocks << std::endl;
 
+        Scalar3 L = box.getL();
+
         dim3 grid(n_blocks, 1, 1);
         dim3 threads(block_size, 1, 1);
 
@@ -2036,6 +2029,8 @@ void gpu_rpy_step_one(const unsigned int group_size,
             range.first,
             d_index_array,
             box,
+            L,
+            shear_rate,
             d_image,
             dt,
             d_vel,

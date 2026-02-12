@@ -27,7 +27,7 @@ namespace md
 ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
                                    std::shared_ptr<ParticleGroup> group)
     : ComputeThermo(sysdef, group), m_scratch(m_exec_conf), m_scratch_pressure_tensor(m_exec_conf),
-      m_scratch_rot(m_exec_conf)
+      m_scratch_rot(m_exec_conf), m_scratch_virial_ind_tensor(m_exec_conf)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {

@@ -47,6 +47,137 @@ TwoStepRPYGPU::TwoStepRPYGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_cuda_dfft_initialized = false;
     } /* end of constructor */
 
+void TwoStepRPYGPU::setParams()
+    {
+    // find the cut-off radius for Ewald
+    Scalar xi2 = m_xi * m_xi;
+    Scalar xi3 = xi2 * m_xi;
+    Scalar xi4 = xi2 * xi2;
+    m_xi2 = xi2;
+    m_pisqrt = fast::sqrt(M_PI);
+    m_xi_pisqrt_inv = m_xi / m_pisqrt;
+
+    const BoxDim& global_box = m_pdata->getGlobalBox();
+    Scalar3 L = global_box.getL();
+
+    m_rcut_ewald = fast::sqrt( - fast::log(m_error) ) / m_xi;
+    if ( (m_rcut_ewald > L.x / 2.0) || (m_rcut_ewald > L.y / 2.0) || (m_rcut_ewald > L.z / 2.0) )
+        {
+        printf("Cut-off radius in Ewald Real Space is too large.\n");
+        exit(EXIT_FAILURE);
+        }
+    
+    // find the number of mesh points along each axis
+    unsigned int kcut = (unsigned int) ( 2.0 * fast::sqrt( - fast::log(m_error) ) * m_xi ) + 1;
+    m_mesh_points.x = (unsigned int) (kcut * L.x / M_PI) + 1;
+    m_mesh_points.y = (unsigned int) (kcut * L.y / M_PI) + 1;
+    m_mesh_points.z = (unsigned int) (kcut * L.z / M_PI) + 1;
+
+    std::vector<unsigned int> Mlist;
+    for ( int ii = 0; ii < 10; ++ii ){
+		int pow2 = 1;
+		for ( int i = 0; i < ii; ++i ){
+			pow2 *= 2;
+		}
+		for ( int jj = 0; jj < 6; ++jj ){
+			int pow3 = 1;
+			for ( int j = 0; j < jj; ++j ){
+				pow3 *= 3;
+			}
+			for ( int kk = 0; kk < 4; ++kk ){
+				int pow5 = 1;
+				for ( int k = 0; k < kk; ++k ){
+					pow5 *= 5;
+				}
+				int Mcurr = pow2 * pow3 * pow5;
+				if ( Mcurr >= 8 && Mcurr <= 512 ){
+					Mlist.push_back(Mcurr);
+				}
+			}
+		}
+	}
+	std::sort(Mlist.begin(),Mlist.end());
+	const unsigned int nmult = Mlist.size();
+
+    for ( int ii = 0; ii < nmult; ++ii ){
+		if (m_mesh_points.x <= Mlist[ii]){
+			 m_mesh_points.x = Mlist[ii];
+			break;
+		}
+	}
+	for ( int ii = 0; ii < nmult; ++ii ){
+		if (m_mesh_points.y <= Mlist[ii]){
+			m_mesh_points.y = Mlist[ii];
+			break;
+		}
+	}
+	for ( int ii = 0; ii < nmult; ++ii ){
+		if (m_mesh_points.z <= Mlist[ii]){
+			m_mesh_points.z = Mlist[ii];
+			break;
+		}
+	}
+    
+
+    m_global_dim = m_mesh_points;
+    m_NNN = m_global_dim.x * m_global_dim.y * m_global_dim.z;
+
+    // size of mesh grid
+    Scalar hx = L.x / (Scalar) m_global_dim.x;
+    Scalar hy = L.y / (Scalar) m_global_dim.y;
+    Scalar hz = L.z / (Scalar) m_global_dim.z;
+    m_h = make_scalar3(hx, hy, hz);
+    m_vk = hx * hy * hz;
+
+    // Find the number of supporting points
+    Scalar gamma = 0.5;
+    Scalar gamma2 = gamma * gamma;
+    Scalar lambda = 1.0 + 0.5 * gamma2 + gamma * fast::sqrt(1.0 + 0.25 * gamma2);
+    Scalar gauss = Scalar(1.0);
+    while ( fast::erfc( gauss / fast::sqrt(2.0 * lambda) ) > m_error )
+        {
+        gauss += 0.01;
+        }
+    m_P = (unsigned int) (gauss * gauss / M_PI) + 1;
+    if (m_P % 2 == 0)
+        {
+        m_P += 1;
+        }
+
+    if (m_P > m_mesh_points.x)
+        m_P = m_mesh_points.x;
+    if (m_P > m_mesh_points.y)
+        m_P = m_mesh_points.y;
+    if (m_P > m_mesh_points.z)
+        m_P = m_mesh_points.z;
+    m_radius = m_P / 2;
+    
+    // Find the parameters for Spectral Ewald
+    Scalar w = Scalar(m_P) * hx / 2.0;
+    m_eta = (2.0 * w / gauss) * (2.0 * w / gauss) * xi2;
+    m_gauss_fac = 2.0 * xi2 / (M_PI * m_eta) * fast::sqrt( 2.0 * xi2 / (M_PI * m_eta) );
+    m_gauss_exp = 2.0 * xi2 / m_eta;
+    
+    m_self_func.x = 1.0 - m_xi / ( 3.0 * m_pisqrt ) * (9.0 - 10.0 * xi2 + 7.0 * xi4);
+    m_self_func.y = 0.75 - xi3 / ( 10.0 * m_pisqrt ) * (25.0 - 42.0 * xi2 + 27.0 * xi4);
+    
+    m_need_initialize = true;
+    std::cout << "Parameters setup finished\n" << std::endl;
+    std::cout << "xi = " << m_xi << std::endl;
+    std::cout << "rcut = " << m_rcut_ewald << std::endl;
+    std::cout << "xa11 = " << m_self_func.x << ", xc11 = " << m_self_func.y << std::endl;
+    std::cout << "global dimension: " << m_global_dim.x << ", " << m_global_dim.y << ", " << m_global_dim.z << std::endl;
+    std::cout << "mesh dimension: " << m_mesh_points.x << ", " << m_mesh_points.y << ", " << m_mesh_points.z << std::endl;
+    std::cout << "grid dimension: " << m_grid_dim.x << ", " << m_grid_dim.y << ", " << m_grid_dim.z << std::endl;
+    std::cout << "ghost cell dimension: " << m_n_ghost_cells.x << ", " << m_n_ghost_cells.y << ", " << m_n_ghost_cells.z << std::endl;
+    std::cout << "total mesh = " << m_NNN << std::endl;
+    std::cout << "total inner mesh = " << m_n_cells << std::endl;
+    std::cout << "inner mesh = " << m_n_inner_cells << std::endl;
+    std::cout << "P = " << m_P << std::endl;
+    std::cout << "eta = " << m_eta << std::endl;
+
+    } /* end of setParams */
+
 TwoStepRPYGPU::~TwoStepRPYGPU()
     {
     if (m_local_fft && m_cufft_initialized)
@@ -256,8 +387,7 @@ void TwoStepRPYGPU::computeWaveValue()
                               access_mode::overwrite);
 
     unsigned int block_size = m_tuner_wavefunc->getParam()[0];
-    std::cout << "\nCC: In Wave Computation" << std::endl;
-    std::cout << "tuner block size = " << block_size << std::endl;
+   
     m_tuner_wavefunc->begin();
     kernel::gpu_compute_wave_value(m_mesh_points,
                                    d_gridk.data,
@@ -339,11 +469,10 @@ void TwoStepRPYGPU::assignParticleForce(Scalar * force)
                                             access_location::device,
                                             access_mode::read);
     unsigned int group_size = m_group->getNumMembers();
-    // std::cout << "\nCC: In Particle Spreading" << std::endl;
 
     m_tuner_assign->begin();
     unsigned int block_size = m_tuner_assign->getParam()[0];
-    // std::cout << "tuner block size = " << block_size << std::endl;
+    
     kernel::gpu_assign_particle_force(m_mesh_points,
                                       m_n_ghost_cells,
                                       m_grid_dim,
@@ -381,19 +510,6 @@ void TwoStepRPYGPU::forwardFFT()
                                             access_location::device,
                                             access_mode::read);
 #ifdef __HIP_PLATFORM_HCC__
-    // CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
-    //                                  d_mesh_Fx.data,
-    //                                  d_mesh_Fx.data,
-    //                                  HIPFFT_FORWARD));
-    // CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
-    //                                  d_mesh_Fy.data,
-    //                                  d_mesh_Fy.data,
-    //                                  HIPFFT_FORWARD));
-    // CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
-    //                                  d_mesh_Fz.data,
-    //                                  d_mesh_Fz.data,
-    //                                  HIPFFT_FORWARD));
-    
     hipfftExecC2C(m_hipfft_plan,
                   d_mesh_Fx.data,
                   d_mesh_Fx.data,
@@ -407,19 +523,6 @@ void TwoStepRPYGPU::forwardFFT()
                   d_mesh_Fz.data,
                   HIPFFT_FORWARD);
 #else
-    // CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan,
-    //                                 d_mesh_Fx.data,
-    //                                 d_mesh_Fx.data,
-    //                                 CUFFT_FORWARD));
-    // CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan,
-    //                                 d_mesh_Fy.data,
-    //                                 d_mesh_Fy.data,
-    //                                 CUFFT_FORWARD));
-    // CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan,
-    //                                 d_mesh_Fz.data,
-    //                                 d_mesh_Fz.data,
-    //                                 CUFFT_FORWARD));
-    
     cufftExecC2C(m_hipfft_plan,
                  d_mesh_Fx.data,
                  d_mesh_Fx.data,
@@ -466,9 +569,8 @@ void TwoStepRPYGPU::meshGreen()
                              access_location::device,
                              access_mode::read);
 
-    // std::cout << "\nCC: In Mesh Green" << std::endl;
     unsigned int block_size = m_tuner_green->getParam()[0];
-    // std::cout << "tuner block size = " << block_size << std::endl;
+    
     m_tuner_green->begin();
     kernel::gpu_mesh_green(m_n_inner_cells,
                            d_mesh_Fx.data,
@@ -490,142 +592,48 @@ void TwoStepRPYGPU::meshGreen()
     } /* end of meshGreen */
 
 void TwoStepRPYGPU::backwardFFT()
-    {
-    if (m_local_fft)
-        {
-        // do local inverse FFT 
-        ArrayHandle<hipfftComplex> d_mesh_inv_Fx(m_mesh_inv_Fx,
-                                                 access_location::device,
-                                                 access_mode::overwrite);
-        ArrayHandle<hipfftComplex> d_mesh_inv_Fy(m_mesh_inv_Fy,
-                                                 access_location::device,
-                                                 access_mode::overwrite);
-        ArrayHandle<hipfftComplex> d_mesh_inv_Fz(m_mesh_inv_Fz,
-                                                 access_location::device,
-                                                 access_mode::overwrite);
-        // do inverse FFT in-place
-        m_exec_conf->beginMultiGPU();
+    {    
+    // do local inverse FFT 
+    ArrayHandle<hipfftComplex> d_mesh_inv_Fx(m_mesh_inv_Fx,
+                                                access_location::device,
+                                                access_mode::overwrite);
+    ArrayHandle<hipfftComplex> d_mesh_inv_Fy(m_mesh_inv_Fy,
+                                                access_location::device,
+                                                access_mode::overwrite);
+    ArrayHandle<hipfftComplex> d_mesh_inv_Fz(m_mesh_inv_Fz,
+                                                access_location::device,
+                                                access_mode::overwrite);
+    // do inverse FFT in-place
+    m_exec_conf->beginMultiGPU();
 #ifdef __HIP_PLATFORM_HCC__
-        // CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
-        //                                  d_mesh_inv_Fx.data,
-        //                                  d_mesh_inv_Fx.data,
-        //                                  HIPFFT_BACKWARD));
-        // CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
-        //                                  d_mesh_inv_Fy.data,
-        //                                  d_mesh_inv_Fy.data,
-        //                                  HIPFFT_BACKWARD));
-        // CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
-        //                                  d_mesh_inv_Fz.data,
-        //                                  d_mesh_inv_Fz.data,
-        //                                  HIPFFT_BACKWARD));
-        hipfftExecC2C(m_hipfft_plan,
-                      d_mesh_inv_Fx.data,
-                      d_mesh_inv_Fx.data,
-                      HIPFFT_BACKWARD);
-        hipfftExecC2C(m_hipfft_plan,
-                      d_mesh_inv_Fy.data,
-                      d_mesh_inv_Fy.data,
-                      HIPFFT_BACKWARD);
-        hipfftExecC2C(m_hipfft_plan,
-                      d_mesh_inv_Fz.data,
-                      d_mesh_inv_Fz.data,
-                      HIPFFT_BACKWARD);
+    hipfftExecC2C(m_hipfft_plan,
+                  d_mesh_inv_Fx.data,
+                  d_mesh_inv_Fx.data,
+                  HIPFFT_BACKWARD);
+    hipfftExecC2C(m_hipfft_plan,
+                  d_mesh_inv_Fy.data,
+                  d_mesh_inv_Fy.data,
+                  HIPFFT_BACKWARD);
+    hipfftExecC2C(m_hipfft_plan,
+                  d_mesh_inv_Fz.data,
+                  d_mesh_inv_Fz.data,
+                  HIPFFT_BACKWARD);
 #else
-        // CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan,
-        //                                 d_mesh_inv_Fx.data,
-        //                                 d_mesh_inv_Fx.data,
-        //                                 CUFFT_INVERSE));
-        // CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan,
-        //                                 d_mesh_inv_Fy.data,
-        //                                 d_mesh_inv_Fy.data,
-        //                                 CUFFT_INVERSE));
-        // CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan,
-        //                                 d_mesh_inv_Fz.data,
-        //                                 d_mesh_inv_Fz.data,
-        //                                 CUFFT_INVERSE));
-        cufftExecC2C(m_hipfft_plan,
-                     d_mesh_inv_Fx.data,
-                     d_mesh_inv_Fx.data,
-                     CUFFT_INVERSE);
-        cufftExecC2C(m_hipfft_plan,
-                     d_mesh_inv_Fy.data,
-                     d_mesh_inv_Fy.data,
-                     CUFFT_INVERSE);
-        cufftExecC2C(m_hipfft_plan,
-                     d_mesh_inv_Fz.data,
-                     d_mesh_inv_Fz.data,
-                     CUFFT_INVERSE);
+    cufftExecC2C(m_hipfft_plan,
+                 d_mesh_inv_Fx.data,
+                 d_mesh_inv_Fx.data,
+                 CUFFT_INVERSE);
+    cufftExecC2C(m_hipfft_plan,
+                 d_mesh_inv_Fy.data,
+                 d_mesh_inv_Fy.data,
+                 CUFFT_INVERSE);
+    cufftExecC2C(m_hipfft_plan,
+                 d_mesh_inv_Fz.data,
+                 d_mesh_inv_Fz.data,
+                 CUFFT_INVERSE);
 #endif
-        m_exec_conf->endMultiGPU();
-        }
-#ifdef ENABLE_MPI
-    else
-        {
-        // distributed IFFT
-        m_exec_conf->msg->notice(8) << "Force IFFT: distributed IFFT" << std::endl;
-#ifndef USE_HOST_DFFT
-        ArrayHandle<hipfftComplex> d_mesh_inv_Fx(m_mesh_inv_Fx,
-                                                 access_location::device,
-                                                 access_mode::overwrite);
-        ArrayHandle<hipfftComplex> d_mesh_inv_Fy(m_mesh_inv_Fy,
-                                                 access_location::device,
-                                                 access_mode::overwrite);
-        ArrayHandle<hipfftComplex> d_mesh_inv_Fz(m_mesh_inv_Fz,
-                                                 access_location::device,
-                                                 access_mode::overwrite);
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            dfft_cuda_check_errors(&m_dfft_plan_inverse, 1);
-        else
-            dfft_cuda_check_errors(&m_dfft_plan_inverse, 0);
+    m_exec_conf->endMultiGPU();
         
-        dfft_cuda_execute(d_mesh_inv_Fx.data + m_ghost_offset,
-                          d_mesh_inv_Fx.data + m_ghost_offset,
-                          1,
-                          &m_dfft_plan_inverse);
-        dfft_cuda_execute(d_mesh_inv_Fy.data + m_ghost_offset,
-                          d_mesh_inv_Fy.data + m_ghost_offset,
-                          1,
-                          &m_dfft_plan_inverse);
-        dfft_cuda_execute(d_mesh_inv_Fz.data + m_ghost_offset,
-                          d_mesh_inv_Fz.data + m_ghost_offset,
-                          1,
-                          &m_dfft_plan_inverse);
-#else
-        ArrayHandle<hipfftComplex> h_mesh_inv_Fx(m_mesh_inv_Fx,
-                                                 access_location::device,
-                                                 access_mode::overwrite);
-        ArrayHandle<hipfftComplex> h_mesh_inv_Fy(m_mesh_inv_Fy,
-                                                 access_location::device,
-                                                 access_mode::overwrite);
-        ArrayHandle<hipfftComplex> h_mesh_inv_Fz(m_mesh_inv_Fz,
-                                                 access_location::device,
-                                                 access_mode::overwrite);
-        dfft_execute((cpx_t*)h_mesh_inv_Fx.data + m_ghost_offset,
-                     (cpx_t*)h_mesh_inv_Fx.data + m_ghost_offset,
-                     1,
-                     m_dfft_plan_inverse);
-        dfft_execute((cpx_t*)h_mesh_inv_Fy.data + m_ghost_offset,
-                     (cpx_t*)h_mesh_inv_Fy.data + m_ghost_offset,
-                     1,
-                     m_dfft_plan_inverse);
-        dfft_execute((cpx_t*)h_mesh_inv_Fz.data + m_ghost_offset,
-                     (cpx_t*)h_mesh_inv_Fz.data + m_ghost_offset,
-                     1,
-                     m_dfft_plan_inverse);
-#endif
-        }
-#endif
-
-#ifdef ENABLE_MPI
-    if (!m_local_fft)
-        {
-        // update outer cells of IFFT using ghost cells from neighboring processors
-        m_exec_conf->msg->notice(8) << "Force FFT: ghost cell update" << std::endl;
-        m_gpu_grid_comm_reverse->communicate(m_mesh_inv_Fx);
-        m_gpu_grid_comm_reverse->communicate(m_mesh_inv_Fy);
-        m_gpu_grid_comm_reverse->communicate(m_mesh_inv_Fz);
-        }
-#endif
     } /* end of backwardFFT */
 
 void TwoStepRPYGPU::interpolateParticleVelocity(Scalar * uwave)
@@ -645,9 +653,8 @@ void TwoStepRPYGPU::interpolateParticleVelocity(Scalar * uwave)
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
                                             access_location::device,
                                             access_mode::read);
-    // std::cout << "\nCC: In Particle Velocity Interpolation" << std::endl;
+    
     unsigned int block_size = m_tuner_interpolate->getParam()[0];
-    // std::cout << "tuner block size = " << block_size << std::endl;
 
     m_tuner_interpolate->begin();
     kernel::gpu_interpolate_particle_velocity(m_mesh_points,
@@ -663,7 +670,7 @@ void TwoStepRPYGPU::interpolateParticleVelocity(Scalar * uwave)
                                               m_pdata->getBox(),
                                               m_h,
                                               m_local_fft,
-                                              m_n_cells + m_ghost_offset,
+                                              m_n_cells,
                                               d_mesh_inv_Fx.data,
                                               d_mesh_inv_Fy.data,
                                               d_mesh_inv_Fz.data,
@@ -683,86 +690,14 @@ void TwoStepRPYGPU::mobilityWaveUF(Scalar * force,
     // assign force
     assignParticleForce(force);
 
-    // //~ output data
-    // ArrayHandle<hipfftComplex> h_mesh_Fx(m_mesh_Fx,
-    //                                     access_location::host,
-    //                                     access_mode::read);
-    // ArrayHandle<hipfftComplex> h_mesh_Fy(m_mesh_Fy,
-    //                                      access_location::host,
-    //                                      access_mode::read);
-    // ArrayHandle<hipfftComplex> h_mesh_Fz(m_mesh_Fz,
-    //                                      access_location::host,
-    //                                      access_mode::read);
-    // std::ofstream file("gpu_fft.dat");
-    // for (unsigned int i = 0; i < m_n_inner_cells; i++)
-    //     {
-    //     file << h_mesh_Fx.data[i].x << " " << h_mesh_Fy.data[i].x << " " << h_mesh_Fz.data[i].x << std::endl;
-    //     }
-    // file.close();
-
-    // printf("\nAfter force spreading\n");
-
-    // for (unsigned int i = 0; i < m_n_inner_cells; i++)
-    //     {
-    //     printf("Grid %u: (%f %f), (%f %f), (%f %f)\n", i, h_mesh_Fx.data[i].x, h_mesh_Fx.data[i].y, h_mesh_Fy.data[i].x, h_mesh_Fy.data[i].y, h_mesh_Fz.data[i].x, h_mesh_Fz.data[i].y);
-    //     }
-    // //~
-
-    
-
     // FFT
     forwardFFT();
-
-    // //~ output data
-    // printf("\nAfter FFT\n");
-    // ArrayHandle<hipfftComplex> h_mesh_Fx(m_mesh_Fx,
-    //                                     access_location::host,
-    //                                     access_mode::read);
-    // ArrayHandle<hipfftComplex> h_mesh_Fy(m_mesh_Fy,
-    //                                      access_location::host,
-    //                                      access_mode::read);
-    // ArrayHandle<hipfftComplex> h_mesh_Fz(m_mesh_Fz,
-    //                                      access_location::host,
-    //                                      access_mode::read);
-    // std::cout << "FFT Fx size = " << m_mesh_Fx.getNumElements() << std::endl;
-    // std::cout << "FFT Fy size = " << m_mesh_Fy.getNumElements() << std::endl;
-    // std::cout << "FFT Fz size = " << m_mesh_Fz.getNumElements() << std::endl;
-    // for (unsigned int i = 0; i < m_n_inner_cells; i++)
-    //     {
-    //     printf("Grid %u: (%f %f), (%f %f), (%f %f)\n", i, h_mesh_Fx.data[i].x, h_mesh_Fx.data[i].y, h_mesh_Fy.data[i].x, h_mesh_Fy.data[i].y, h_mesh_Fz.data[i].x, h_mesh_Fz.data[i].y);
-    //     }
-    // //~
 
     // scale by Green's function
     meshGreen();
 
-    // //~ output data
-    // printf("\nAfter scaling\n");
-    // ArrayHandle<hipfftComplex> h_mesh_inv_Fx(m_mesh_inv_Fx,
-    //                                          access_location::host,
-    //                                          access_mode::read);
-    // ArrayHandle<hipfftComplex> h_mesh_inv_Fy(m_mesh_inv_Fy,
-    //                                          access_location::host,
-    //                                          access_mode::read);
-    // ArrayHandle<hipfftComplex> h_mesh_inv_Fz(m_mesh_inv_Fz,
-    //                                          access_location::host,
-    //                                          access_mode::read);
-    // for (unsigned int i = 0; i < m_n_inner_cells; i++)
-    //     {
-    //     printf("Grid %u: (%f %f), (%f %f), (%f %f)\n", i, h_mesh_inv_Fx.data[i].x, h_mesh_inv_Fx.data[i].y, h_mesh_inv_Fy.data[i].x, h_mesh_inv_Fy.data[i].y, h_mesh_inv_Fz.data[i].x, h_mesh_inv_Fz.data[i].y);
-    //     }
-    // //~
-
     // IFFT
     backwardFFT();
-
-    // //~ output data
-    // printf("\nAfter IFFT\n");
-    // for (unsigned int i = 0; i < m_n_inner_cells; i++)
-    //     {
-    //     printf("Grid %u: (%f %f), (%f %f), (%f %f)\n", i, h_mesh_inv_Fx.data[i].x, h_mesh_inv_Fx.data[i].y, h_mesh_inv_Fy.data[i].x, h_mesh_inv_Fy.data[i].y, h_mesh_inv_Fz.data[i].x, h_mesh_inv_Fz.data[i].y);
-    //     }
-    // //~
 
     // interpolate velocity
     interpolateParticleVelocity(uwave);
@@ -798,34 +733,6 @@ void TwoStepRPYGPU::mobilityGeneralUF(Scalar * force,
                                       d_u_wave.data,
                                       velocity,
                                       m_block_size);
-    
-    // //~ output data
-    // ArrayHandle<unsigned int> h_index_array(m_group->getIndexArray(),
-    //                                         access_location::host,
-    //                                         access_mode::read);
-    // ArrayHandle<Scalar> h_u_real(m_u_real,
-    //                              access_location::host,
-    //                              access_mode::read);
-    // ArrayHandle<Scalar> h_u_wave(m_u_wave,
-    //                              access_location::host,
-    //                              access_mode::read);
-    // printf("\nDeterministic velocity\n");                             
-    // printf("Real-part deterministic velocity\n");
-    // for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-    //     {
-    //     unsigned int idx = h_index_array.data[group_idx];
-    //     unsigned int i3 = idx * 3;
-    //     printf("Particle %u: %f %f %f\n", idx, h_u_real.data[i3], h_u_real.data[i3 + 1], h_u_real.data[i3 + 2]);
-    //     }
-
-    // printf("Wave-part deterministic velocity\n");
-    // for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-    //     {
-    //     unsigned int idx = h_index_array.data[group_idx];
-    //     unsigned int i3 = idx * 3;
-    //     printf("Particle %u: %f %f %f\n", idx, h_u_wave.data[i3], h_u_wave.data[i3 + 1], h_u_wave.data[i3 + 2]);
-    //     }
-    // //~
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         {
@@ -956,8 +863,7 @@ void TwoStepRPYGPU::brownianFarFieldSlipVelocityWave(uint64_t timestep,
     Scalar currentTemp = m_T->operator()(timestep);
 
     unsigned int block_size = m_tuner_gridrng->getParam()[0];
-    // std::cout << "\nCC: Slip Velocity Wave" << std::endl;
-    // std::cout << "tuner block size = " << block_size << std::endl;
+    
     kernel::gpu_brownian_farfield_grid_rng(m_n_inner_cells,
                                            timestep,
                                            m_seed,
@@ -1016,34 +922,6 @@ void TwoStepRPYGPU::brownianFarFieldSlipVelocity(uint64_t timestep,
                                       uslip,
                                       m_block_size);
 
-    // //~ output data
-    // ArrayHandle<unsigned int> h_index_array(m_group->getIndexArray(),
-    //                                         access_location::host,
-    //                                         access_mode::read);
-    // ArrayHandle<Scalar> h_uslip_wave(m_uslip_wave,
-    //                                  access_location::host,
-    //                                  access_mode::read);
-    // ArrayHandle<Scalar> h_iter_ff_u(m_iter_ff_u,
-    //                                 access_location::host,
-    //                                 access_mode::read);
-    // printf("\nBrownain velocity\n");                                
-    // printf("Real-part brownian velocity\n");
-    // for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-    //     {
-    //     unsigned int idx = h_index_array.data[group_idx];
-    //     unsigned int i3 = idx * 3;
-    //     printf("Particle %u: %f %f %f\n", idx, h_iter_ff_u.data[i3], h_iter_ff_u.data[i3 + 1], h_iter_ff_u.data[i3 + 2]);
-    //     }
-        
-    // printf("Wave-part brownian velocity\n");
-    // for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-    //     {
-    //     unsigned int idx = h_index_array.data[group_idx];
-    //     unsigned int i3 = idx * 3;
-    //     printf("Particle %u: %f %f %f\n", idx, h_uslip_wave.data[i3], h_uslip_wave.data[i3 + 1], h_uslip_wave.data[i3 + 2]);
-    //     }
-    // //~
-
     } /* end of brownianFarFieldSlipVelocity */
 
 void TwoStepRPYGPU::solverMobilityUF(uint64_t timestep,
@@ -1057,23 +935,6 @@ void TwoStepRPYGPU::solverMobilityUF(uint64_t timestep,
     mobilityGeneralUF(force,
                       d_u_determin.data);
 
-    // //~ output data
-    // unsigned int group_size = m_group->getNumMembers();
-    // ArrayHandle<unsigned int> h_index_array(m_group->getIndexArray(),
-    //                                         access_location::host,
-    //                                         access_mode::read);
-    // printf("Total deteriministic velocity\n");
-    // ArrayHandle<Scalar> h_u_determin(m_u_determin,
-    //                                  access_location::host,
-    //                                  access_mode::read);
-    // for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-    //     {
-    //     unsigned int idx = h_index_array.data[group_idx];
-    //     unsigned int i3 = idx * 3;
-    //     printf("Particle %u: %f %f %f\n", idx, h_u_determin.data[i3], h_u_determin.data[i3 + 1], h_u_determin.data[i3 + 2]);
-    //     }
-    // //~
-
     // calculate stochastic velocity
     Scalar currentTemp = m_T->operator()(timestep);
     if (currentTemp > 0.0)
@@ -1083,20 +944,7 @@ void TwoStepRPYGPU::solverMobilityUF(uint64_t timestep,
                                     access_mode::readwrite);
         brownianFarFieldSlipVelocity(timestep,
                                      d_uslip.data);
-        
-        // //~ output data
-        // printf("Total brownian velocity\n");
-        // ArrayHandle<Scalar> h_uslip(m_uslip,
-        //                             access_location::host,
-        //                             access_mode::read);                       
-        // for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-        //     {
-        //     unsigned int idx = h_index_array.data[group_idx];
-        //     unsigned int i3 = idx * 3;
-        //     printf("Particle %u: %f %f %f\n", idx, h_uslip.data[i3], h_uslip.data[i3 + 1], h_uslip.data[i3 + 2]);
-        //     }
-        // //~ 
-
+       
         // add up velocity
         unsigned int group_size = m_group->getNumMembers();
         ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
@@ -1126,6 +974,18 @@ void TwoStepRPYGPU::integrateStepOne(uint64_t timestep)
         m_need_initialize = false;
         }
 
+    // printf("\nStep %lu\n", timestep);
+    if (m_box_changed)
+        {
+        // printf("Box changed\n");
+        computeWaveValue();
+        m_box_changed = false;
+        }
+    else
+        {
+        // printf("Box not changed\n");
+        }
+    
     m_nlist->compute(timestep);
     if (timestep % 1000 == 0)
         {
@@ -1155,22 +1015,6 @@ void TwoStepRPYGPU::integrateStepOne(uint64_t timestep)
                      d_fts.data,
                      d_uoe.data);
 
-    // //~ output data
-    // ArrayHandle<unsigned int> h_index_array(m_group->getIndexArray(),
-    //                                         access_location::host,
-    //                                         access_mode::read);
-    // ArrayHandle<Scalar> h_uoe(m_uoe,
-    //                           access_location::host,
-    //                           access_mode::read);
-    // printf("Total velocity\n");
-    // for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-    //     {
-    //     unsigned int idx = h_index_array.data[group_idx];
-    //     unsigned int i3 = idx * 3;
-    //     printf("Particle %u: %f %f %f\n", idx, h_uoe.data[i3], h_uoe.data[i3 + 1], h_uoe.data[i3 + 2]);
-    //     }
-    // //~
-
     // convert velocity of Scalar to Scalar4
     ArrayHandle<Scalar4> d_totvelocity(m_pdata->getVelocities(),
                                        access_location::device,
@@ -1181,18 +1025,8 @@ void TwoStepRPYGPU::integrateStepOne(uint64_t timestep)
                                           d_totvelocity.data,
                                           m_block_size);
 
-    // //~ output data
-    // printf("\nTotal velocity for integrating\n");
-    // ArrayHandle<Scalar4> h_totvelocity(m_pdata->getVelocities(),
-    //                                    access_location::host,
-    //                                    access_mode::read);
-    // for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-    //     {
-    //     unsigned int idx = h_index_array.data[group_idx];
-    //     printf("Particle %u: %f %f %f\n", idx, h_totvelocity.data[idx].x, h_totvelocity.data[idx].y, h_totvelocity.data[idx].z);
-    //     }
-
     // update position
+    Scalar shear_rate = this->m_SR;
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
                                access_location::device,
                                access_mode::readwrite);
@@ -1204,6 +1038,7 @@ void TwoStepRPYGPU::integrateStepOne(uint64_t timestep)
     kernel::gpu_rpy_step_one(group_size,
                              d_index_array.data,
                              m_pdata->getBox(),
+                             shear_rate,
                              d_image.data,
                              m_deltaT,
                              d_totvelocity.data,
@@ -1235,7 +1070,8 @@ void export_TwoStepRPYGPU(pybind11::module& m)
                             std::shared_ptr<Variant>,
                             std::shared_ptr<NeighborList>,
                             Scalar,
-                            Scalar>());
+                            Scalar>())
+        .def("setParams", &TwoStepRPYGPU::setParams);
     }
 
     } // end namespace detail
