@@ -53,6 +53,7 @@ template<class evaluator> class PotentialPairDPDThermo : public PotentialPair<ev
     //! Construct the pair potential
     PotentialPairDPDThermo(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<NeighborList> nlist,
+			   int period, //~ add period [RHEOINF]
                            bool bond_calc); //~ add bond_calc [RHEOINF]
     //! Destructor
     virtual ~PotentialPairDPDThermo() {};
@@ -62,6 +63,17 @@ template<class evaluator> class PotentialPairDPDThermo : public PotentialPair<ev
 
     //! Get the temperature
     virtual std::shared_ptr<Variant> getT();
+
+    //~! Check the recording period flag [RHEOINF]
+    void setPeriod(int period)
+        {
+        m_period = period;
+        }
+    int getPeriod()
+        {
+        return m_period;
+        }
+    //~
 
     //~! Check the bond_calc flag [RHEOINF]
     void setBondCalcEnabled(bool bond_calc)
@@ -86,6 +98,7 @@ template<class evaluator> class PotentialPairDPDThermo : public PotentialPair<ev
     protected:
     std::shared_ptr<Variant> m_T; //!< Temperature for the DPD thermostat
 
+    int m_period;                    //~!< recording period flag (default 10000) [RHEOINF]
     bool m_bond_calc; //= false;      //~!< bond_calc flag (default false) [RHEOINF]
 
    //ofstream DiameterFile; //~ print diameters [RHEOINF]
@@ -100,9 +113,23 @@ template<class evaluator> class PotentialPairDPDThermo : public PotentialPair<ev
 template<class evaluator>
 PotentialPairDPDThermo<evaluator>::PotentialPairDPDThermo(std::shared_ptr<SystemDefinition> sysdef,
                                                           std::shared_ptr<NeighborList> nlist,
+							  int period, //~ add period [RHEINF]
                                                           bool bond_calc) //~ add bond_calc [RHEOINF]
-    : PotentialPair<evaluator>(sysdef, nlist), m_bond_calc(bond_calc) //~ add bond_calc [RHEOINF]
+    : PotentialPair<evaluator>(sysdef, nlist), m_period(period), m_bond_calc(bond_calc) //~ add bond_calc [RHEOINF]
     {
+
+    //~ guard against period=0 (avoids modulo-by-zero in computeForces); warn once [RHEOINF]                                                              
+    if(m_period == 0)                                                        
+        {                                                                    
+        m_period = 1;                                                        
+        if(this->m_exec_conf->getRank() == 0)                                
+            {                                                                
+            this->m_exec_conf->msg->warning()                                
+                << "Lifetime bond recording: period was 0; forcing period=1." << std::endl;                                                               
+            }                                                                
+        }                                                                    
+    //~                 
+
     //~ add bond_calc flag [RHEOINF]
     if(m_bond_calc)
 	{
@@ -317,7 +344,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
             eval.setT(currentTemp);
 
 	    //~ add bond_calc [RHEOINF]
-	    if(m_bond_calc)
+	    /*if(m_bond_calc)
 		{
            	if(typei && typej) // if both are NOT zero (solvents are type zero)
                	    {
@@ -343,6 +370,38 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
    	                }
 		    }
 		}
+	    */
+            //~ bond_calc with type tracking and DON'T assume solvents index first [RHEOINF]
+            if(m_bond_calc)
+                {
+                if(typei && typej) // if both are NOT zero (solvents are type zero)
+                    {
+                    Scalar rsq_root = fast::sqrt(rsq) - Scalar(0.5)*(h_diameter.data[i]+h_diameter.data[j]);
+                    if(rsq_root < Scalar(0.10)) // assumes the cut-off is 0.1
+                        {
+                        // record types for this colloid pair (idempotent — types are constant for the run)
+                        this->LTIME->colloid_type[tagi - this->LTIME->colloid_offset] = (unsigned char)typei;
+                        this->LTIME->colloid_type[tagj - this->LTIME->colloid_offset] = (unsigned char)typej;
+
+                        unsigned int var1 = tagi - this->LTIME->colloid_offset;
+                        unsigned int var2 = tagj - this->LTIME->colloid_offset;
+                        if(var1 > var2)
+                            {
+                            var1 = tagj - this->LTIME->colloid_offset;
+                            var2 = tagi - this->LTIME->colloid_offset;
+                            }
+                        unsigned int bond_index = (this->LTIME->num_colloid * var1) - (var1 * (var1+1) / 2) + var2 - var1 - 1;
+                        if(rsq_root < Scalar(0.08))
+                            {
+                            this->LTIME->Bond_check[bond_index] = 2;
+                            }
+                        else
+                            {
+                            this->LTIME->Bond_check[bond_index] = 1;
+                            }
+                        }
+                    }
+                }
 	    //~
 
             bool evaluated
@@ -431,7 +490,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
     if(m_bond_calc)
 	{
     	this->LTIME->updatebondtime(timestep);
-    	if(timestep%10000 == 0) // assumes the recording period is 10000
+    	if(timestep%m_period == 0) // uses the passed recording period
 	    {
             this->LTIME->writeBondtime();
 	    }
@@ -473,7 +532,9 @@ template<class T> void export_PotentialPairDPDThermo(pybind11::module& m, const 
     pybind11::class_<PotentialPairDPDThermo<T>,
                      PotentialPair<T>,
                      std::shared_ptr<PotentialPairDPDThermo<T>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, bool>()) //~ add bool for bond_calc [RHEOINF]
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, int, bool>()) //~ add int for period, bool for bond_calc [RHEOINF]
+        .def_property("period",  
+		&PotentialPairDPDThermo<T>::getPeriod, &PotentialPairDPDThermo<T>::setPeriod)  //~ add period [RHEOINF]
         .def_property("bond_calc",  
 		&PotentialPairDPDThermo<T>::getBondCalcEnabled, &PotentialPairDPDThermo<T>::setBondCalcEnabled)  //~ add bond_calc [RHEOINF]
         .def_property("kT", &PotentialPairDPDThermo<T>::getT, &PotentialPairDPDThermo<T>::setT);
