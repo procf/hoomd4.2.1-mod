@@ -73,7 +73,7 @@ class Pair(force.Force, metaclass=PairMeta): ##~ add abstract property for bond_
     # external plugin.
     _ext_module = _md
 
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none', period=10000, bond_calc=False): ##~ default period to 10000, bond_calc to False [RHEOINF]
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none', period=10000, cut_off=0.1, bond_calc=False): ##~ default period to 10000, cut_off to 0.1, bond_calc to False [RHEOINF]
         super().__init__()
         tp_r_cut = TypeParameter(
             'r_cut', 'particle_types',
@@ -96,12 +96,19 @@ class Pair(force.Force, metaclass=PairMeta): ##~ add abstract property for bond_
         self.mode = mode
         self.nlist = nlist
         self._period = period ##~ Store recording period as an instance variable [RHEOINF]
+        self._cut_off = cut_off ##~ Store recording period as an instance variable [RHEOINF]
         self._bond_calc = bond_calc ##~ Store bond_calc value as an instance variable [RHEOINF]
 
     ##~ add a property to access _period instance variable
     @property
     def period(self):
         return self._period
+    ##~
+
+    ##~ add a property to access _cut_off instance variable
+    @property
+    def cut_off(self):
+        return self._cut_off
     ##~
 
     ##~ add a property to access _bond_calc instance variable
@@ -164,9 +171,9 @@ class Pair(force.Force, metaclass=PairMeta): ##~ add abstract property for bond_
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.full)
 
-        ##~ use constructor with period and bond_calc ONLY if using PotentialPairDPDThermo.h [RHEOINF]
+        ##~ use constructor with period, cut_off, and bond_calc ONLY if using PotentialPairDPDThermo.h [RHEOINF]
         if "PotentialPairDPDThermo" in self._cpp_class_name:
-            self._cpp_obj = cls(self._simulation.state._cpp_sys_def, self.nlist._cpp_obj, self._period, self._bond_calc)
+            self._cpp_obj = cls(self._simulation.state._cpp_sys_def, self.nlist._cpp_obj, self._period, self._cut_off, self._bond_calc)
         else: 
             self._cpp_obj = cls(self._simulation.state._cpp_sys_def, self.nlist._cpp_obj)
         ##~ 
@@ -1919,6 +1926,7 @@ class DPDMorse(Pair):
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`. 
         mode (str): Energy shifting/smoothing mode.
         period (int): Record period for bond data (Default 10000).
+        cut_off (float): cut_off criterion for bond tracking (Default 0.1).
         bond_calc (bool): Record bond lifetimes (True) or don't record bond lifetimes (False).
         scaled_D0 (bool): defauly value for on/off class attribute used to scale D0 by particle size (D0*((radius_i_radius_j)/2) [RHEOINF]
         a1 (float): default value for a1; NOTE: this is legacy code from before polydispersity, a1 is NO LONGER USED [RHEOINF]
@@ -1944,7 +1952,7 @@ class DPDMorse(Pair):
 
     Example::
         nl = nlist.Tree()
-        morse = pair.Morse(nlist=nl, kT=KT, default_r_cut=1.0, period=10000, bond_calc=True)
+        morse = pair.Morse(nlist=nl, kT=KT, default_r_cut=1.0, period=10000, cut_off=0.1, bond_calc=True)
          morse.params[('A','A')] = dict(A0=25.0, gamma=45, D0=0, alpha=3.0, r0=0, eta=1.1, f_contact=0.0, a1=0.0, a2=0.0, rcut=1.0)
         morse.r_cut[('A', 'B')] = 1.0
 
@@ -1984,12 +1992,13 @@ Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
     _cpp_class_name = "PotentialPairDPDThermoDPDMorse"
     _accepted_modes = ("none",)
     _default_period = 10000
+    _default_cut_off = 0.1
     _default_scaled_D0 = False
     _default_a1 = 0.0
     _default_a2 = 0.0
     _default_sys_kT = 0.1
 
-    def __init__(self, nlist, kT, default_r_cut=None, period=None, bond_calc=False, scaled_D0=None, a1=None, a2=None, sys_kT=None):
+    def __init__(self, nlist, kT, default_r_cut=None, period=None, cut_off=None, bond_calc=False, scaled_D0=None, a1=None, a2=None, sys_kT=None):
         super().__init__(nlist=nlist,
                          default_r_cut=default_r_cut,
                          default_r_on=0,
@@ -1997,6 +2006,8 @@ Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         ##~ add scaled_D0, default a1, default a2 [RHEOINF]
         if period is None:
             period = self._default_period
+        if cut_off is None:
+            cut_off = self._default_cut_off
         if scaled_D0 is None:
             scaled_D0 = self._default_scaled_D0
         if a1 is None:
@@ -2007,6 +2018,7 @@ Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
             sys_kT = self._default_sys_kT
         ##~
         self._period = period
+        self._cut_off = cut_off
         self._bond_calc = bond_calc
         params = TypeParameter(
             'params', 'particle_types',
@@ -2053,6 +2065,20 @@ Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         Setter method for the recording period property.
         """
         self._period = value
+
+    @property
+    def cut_off(self):
+        """
+        Getter method for the bond tracking cut_off property.
+        """
+        return self._cut_off
+
+    @cut_off.setter
+    def cut_off(self, value):
+        """
+        Setter method for the bond tracking cut_off property.
+        """
+        self._cut_off = value
 
     @property
     def bond_calc(self):

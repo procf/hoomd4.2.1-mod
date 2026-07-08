@@ -46,6 +46,8 @@ template<class evaluator> class PotentialPairDPDThermoGPU : public PotentialPair
     //! Construct the pair potential
     PotentialPairDPDThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
                               std::shared_ptr<NeighborList> nlist,
+			      int period, //~ and recording period [RHEOINF]
+			      Scalar cut_off, //~ add bond tracking cut_off [RHEOINF]
                               bool bond_calc); //~ add bond_calc [RHEOINF]
     //! Destructor
     virtual ~PotentialPairDPDThermoGPU() {};
@@ -61,8 +63,10 @@ template<class evaluator>
 PotentialPairDPDThermoGPU<evaluator>::PotentialPairDPDThermoGPU(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<NeighborList> nlist,
+    int period, // add recording period [RHEOINF]
+    Scalar cut_off, //~ add bond tracking cut_off [RHEOINF]
     bool bond_calc) //~ add bond_calc [RHEOINF]
-    : PotentialPairDPDThermo<evaluator>(sysdef, nlist, bond_calc) //~ add bond_calc [RHEOINF]
+    : PotentialPairDPDThermo<evaluator>(sysdef, nlist, period, cut_off, bond_calc) //~ add period, cut_off, bond_calc [RHEOINF]
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -203,7 +207,7 @@ void export_PotentialPairDPDThermoGPU(pybind11::module& m, const std::string& na
     pybind11::class_<PotentialPairDPDThermoGPU<T>,
                      PotentialPairDPDThermo<T>,
                      std::shared_ptr<PotentialPairDPDThermoGPU<T>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, bool>()); //~ add bool for bond_calc [RHEOINF]
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, int, Scalar, bool>()); //~ add int for period, Scalar for cut_off, bool for bond_calc [RHEOINF]
     }
 
     } // end namespace detail

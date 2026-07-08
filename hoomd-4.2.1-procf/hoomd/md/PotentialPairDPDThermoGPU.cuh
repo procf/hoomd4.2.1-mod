@@ -370,7 +370,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                     virial[5] += dx.z * dx.z * force_div2r_cons;
 
                     Scalar virial_ind_prefix = Scalar(0.5) * dx.x * dx.y;
-                    virial_ind[0] += virial_ind_prefix * cons_divr + force_div2r_cons * dx.x * dx.y;
+                    virial_ind[0] += virial_ind_prefix * cons_divr; // + force_div2r_cons * dx.x * dx.y;
                     virial_ind[1] += virial_ind_prefix * disp_divr;
                     virial_ind[2] += virial_ind_prefix * rand_divr;
                     virial_ind[3] += virial_ind_prefix * sq_divr;
@@ -410,11 +410,12 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
         
         // if we are the first thread in the cta, write out virial to global mem
         if (active && threadIdx.x % tpp == 0)
+	    {
             for (unsigned int i = 0; i < 6; i++)
                 d_virial[i * virial_pitch + idx] = virial[i];
             for (unsigned int i = 0; i < 5; i++)
                 d_virial_ind[i * virial_ind_pitch + idx] = virial_ind[i];
-            
+	    }
         }
     }
 
