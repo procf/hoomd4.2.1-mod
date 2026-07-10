@@ -16,19 +16,12 @@ This repository contains the modified version of HOOMD-blue v4.2 used for colloi
 Additional branches are available, tho they may be incomplete:
 - branch "hoomd4.2_w_wall": modifications for flat and sinusoidal walls
 - branch "no_shear": clean version of original DPDMorse and virial_ind tracking without shear, bond-tracking, or other mods.
+- branch "wheel": version used to compile the wheel for use on GoogleColab (July 2025)
+- branch "August_2025" : archival copy from August 2025
 
-[Last Updated: June 2024]
+[Last Updated: July 2026]
 
 Contact: Rob Campbell (campbell.r@northeastern.edu)
-
------------------
-For any questions, or to help with modifications, contact Rob.
-
-To-Do:
-- [ ] update Lifetime.h @Rob
-- [ ] add wall mods @Josh @Rob
-- [ ] add bond rigidity @Paniz
------------------
 
 ## Installation
 
