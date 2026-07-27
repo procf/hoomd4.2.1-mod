@@ -111,12 +111,13 @@ class EvaluatorPairExpandedLJ
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
         \param _radcontact the sum of the interacting particle radii [RHEOINF]
+	\param _radprod the product of the interacting particle radii [RHEOINF]
         \param _pair_typeids the typeIDs of the interacting particles [RHEOINF]
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairExpandedLJ(Scalar _rsq, Scalar _radcontact, unsigned int _pair_typeids[2], Scalar _rcutsq, const param_type& _params) //~add radcontact, pair_typeIDs [RHEOINF]
-        : rsq(_rsq), radcontact(_radcontact), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6), //~ add radcontact [RHEOINF]
+    DEVICE EvaluatorPairExpandedLJ(Scalar _rsq, Scalar _radcontact, Scalar _radprod, unsigned int _pair_typeids[2], Scalar _rcutsq, const param_type& _params) //~add radcontact, radprod, pair_typeIDs [RHEOINF]
+        : rsq(_rsq), radcontact(_radcontact), radprod(_radprod), rcutsq(_rcutsq), lj1(_params.epsilon_x_4 * _params.sigma_6 * _params.sigma_6), //~ add radcontact, radprod [RHEOINF]
           lj2(_params.epsilon_x_4 * _params.sigma_6), delta(_params.delta)
         {
         typei = _pair_typeids[0]; //~ add typei [RHEOINF]
@@ -218,6 +219,7 @@ class EvaluatorPairExpandedLJ
     protected:
     Scalar rsq;    //!< Stored rsq from the constructor
     Scalar radcontact;//!< Stored contact-distance from the constructor [RHEOINF]
+    Scalar radprod;//!< Stored radii product from the constructor [RHEOINF]
     unsigned int pair_typeids;//!< Stored pair typeIDs from the constructor [RHEOINF] 
     unsigned int typei;//!<~ Stored typeID of particle i from the constructor [RHEOINF]
     unsigned int typej;//!<~ Stored typeID of particle j from the constructor [RHEOINF]

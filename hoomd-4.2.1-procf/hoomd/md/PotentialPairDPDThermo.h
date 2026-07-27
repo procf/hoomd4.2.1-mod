@@ -315,6 +315,10 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
             //DiameterFile << h_tag.data[i] << "," << h_tag.data[j] << "," << typei << "," << typej << "," << h_diameter.data[i] << "," << h_diameter.data[j] << "," << radcontact << "\n";
             //DiameterFile.close();
             //~
+            Scalar radprod = 0.0;
+            {
+            radprod = (Scalar(0.5) * (h_diameter.data[i]) * (Scalar(0.5) * h_diameter.data[j]));
+            }
 
             // calculate the drag term r \dot v
             Scalar rdotv = dot(dx, dv);
@@ -341,7 +345,7 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
             Scalar cont_divr = Scalar(0.0);
 	        //~
             Scalar pair_eng = Scalar(0.0);  
-            evaluator eval(rsq, radcontact, pair_typeids, rcutsq, param); //~ add radcontact, pair_typeids for polydispersity [RHEOINF] 
+            evaluator eval(rsq, radcontact, radprod, pair_typeids, rcutsq, param); //~ add radcontact, radprod, pair_typeids for polydispersity [RHEOINF] 
 
             // Special Potential Pair DPD Requirements
             const Scalar currentTemp = m_T->operator()(timestep);

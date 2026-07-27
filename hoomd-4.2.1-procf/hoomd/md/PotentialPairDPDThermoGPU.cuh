@@ -323,6 +323,9 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                 //~ the calculation is only used if there is polydispersity
                 Scalar radcontact = 0.0;
                 radcontact = Scalar(0.5) * (diameter_i + diameter_j);
+                Scalar radprod = 0.0;
+                radprod = (Scalar(0.5) * diameter_i) * (Scalar(0.5) * diameter_j);
+
 
                 // design specifies that energies are shifted if
                 // 1) shift mode is set to shift
@@ -331,7 +334,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                 if (shift_mode == 1)
                     energy_shift = true;
 
-                evaluator eval(rsq, radcontact, pair_typeids, rcutsq, param); //~ add radcontact, pair_typeids for polydispersity [RHEOINF]
+                evaluator eval(rsq, radcontact, radprod, pair_typeids, rcutsq, param); //~ add radcontact, radprod, pair_typeids for polydispersity [RHEOINF]
 
                 // evaluate the potential
                 Scalar force_divr = Scalar(0.0);

@@ -183,12 +183,13 @@ template<class evaluator> class EvaluatorWalls
         {
         Scalar rsq = dot(drv, drv);
         Scalar radcontact = 0.0; //~ set contact to 0.0 [RHEOINF]
+        Scalar radprod = 1.0; //~ set product to 1.0 [RHEOINF]
         unsigned int pair_typeids[2] = {0,0}; //~ set typeIDs to 0, not needed [RHEOINF]
 
         // compute the force and potential energy
         Scalar force_divr = Scalar(0.0);
         Scalar pair_eng = Scalar(0.0);
-        evaluator eval(rsq, radcontact, pair_typeids, m_params.rcutsq, m_params.params); //~ add radcontact, pair_typeIDs [RHEOINF]
+        evaluator eval(rsq, radcontact, radprod, pair_typeids, m_params.rcutsq, m_params.params); //~ add radcontact, radprod, pair_typeIDs [RHEOINF]
         //~ add diameter [RHEOINF]
         if (evaluator::needsDiameter())
             eval.setDiameter(di, Scalar(0.0));
@@ -227,9 +228,10 @@ template<class evaluator> class EvaluatorWalls
         Scalar force_divr = Scalar(0.0);
         Scalar pair_eng = Scalar(0.0);
         Scalar radcontact = 0.0; //~ set contact to 0.0 [RHEOINF]
+        Scalar radprod = 1.0; //~ set product to 1.0 [RHEOINF]
         unsigned int pair_typeids[2] = {0,0}; //~ set typeIDs to 0, not needed [RHEOINF]
 
-        evaluator eval(rextrapsq, radcontact, pair_typeids, m_params.rcutsq, m_params.params); //~ add radcontact, pair_typeIDs [RHEOINF]
+        evaluator eval(rextrapsq, radcontact, radprod, pair_typeids, m_params.rcutsq, m_params.params); //~ add radcontact, radprod, pair_typeIDs [RHEOINF]
         //~ add diameter [RHEOINF]
         if (evaluator::needsDiameter())
             eval.setDiameter(di, Scalar(0.0));

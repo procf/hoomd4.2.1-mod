@@ -304,6 +304,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 if (evaluator::needsDiameter())
                     dj = d_diameter[cur_j];
                 Scalar radcontact = Scalar(0.5) * (d_diameter[idx] + d_diameter[cur_j]);
+                Scalar radprod = (Scalar(0.5) * d_diameter[idx]) * (Scalar(0.5) * d_diameter[cur_j]);
                 //~
 
                 // access the per type pair parameters
@@ -346,7 +347,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
                 Scalar force_divr = Scalar(0.0);
                 Scalar pair_eng = Scalar(0.0);
 
-                evaluator eval(rsq, radcontact, pair_typeids, rcutsq, *param); //~ add radcontact, pair_typeIDs [RHEOINF]
+                evaluator eval(rsq, radcontact, radprod, pair_typeids, rcutsq, *param); //~ add radcontact, radprod, pair_typeIDs [RHEOINF]
                 if (evaluator::needsCharge())
                     eval.setCharge(qi, qj);
                 //~ add diameter (if needed) [RHEOINF]

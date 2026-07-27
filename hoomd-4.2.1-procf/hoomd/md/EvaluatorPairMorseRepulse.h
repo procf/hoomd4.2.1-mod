@@ -146,7 +146,7 @@ class EvaluatorPairMorseRepulse //~ change name to MorseRepulse
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairMorseRepulse(Scalar _rsq, Scalar _radcontact, unsigned int _pair_typeids[2], Scalar _rcutsq, const param_type& _params) //~ add radcontact and pair typeids [RHEOINF]
+    DEVICE EvaluatorPairMorseRepulse(Scalar _rsq, Scalar _radcontact, Scalar _radprod, unsigned int _pair_typeids[2], Scalar _rcutsq, const param_type& _params) //~ add radcontact, radprod, and pair typeids [RHEOINF]
         : rsq(_rsq), rcutsq(_rcutsq), D0(_params.D0), alpha(_params.alpha), Erep(_params.Erep), Z(_params.Z), kappa_e(_params.kappa_e), Yrep(_params.Yrep), epsilon(_params.epsilon), kappa_y(_params.kappa_y), r0(_params.r0), f_contact(_params.f_contact), scaled_D0(_params.scaled_D0) //~ add params [RHEOINF]
         {
         typei = _pair_typeids[0]; //~ add typei [RHEOINF]
@@ -305,6 +305,7 @@ class EvaluatorPairMorseRepulse //~ change name to MorseRepulse
     protected:
     Scalar rsq;    //!< Stored rsq from the constructor
     Scalar radcontact;//!< Stored contact-distance from the constructor [RHEOINF]
+    Scalar radprod;//!< Stored radii product from the constructor [RHEOINF]
     unsigned int pair_typeids;//!< Stored pair typeIDs from the constructor [RHEOINF]
     unsigned int typei;//!<~ Stored typeID of particle i from the constructor [RHEOINF]
     unsigned int typej;//!<~ Stored typeID of particle j from the constructor [RHEOINF]

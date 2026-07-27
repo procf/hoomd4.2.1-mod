@@ -227,8 +227,8 @@ class EvaluatorPairDPDThermoDPDMorse
         \param _rcutsq Squared distance at which the potential goes to 0
         \param _params Per type pair parameters of this potential
     */
-    DEVICE EvaluatorPairDPDThermoDPDMorse(Scalar _rsq, Scalar _radsum, unsigned int _pair_typeids[2], Scalar _rcutsq, const param_type& _params) //~ add radsum, pair_typeIDs [RHEOINF]
-        : rsq(_rsq), radsum(_radsum), rcutsq(_rcutsq), A0(_params.A0), gamma(_params.gamma), D0(_params.D0), alpha(_params.alpha), 
+    DEVICE EvaluatorPairDPDThermoDPDMorse(Scalar _rsq, Scalar _radcontact, Scalar _radprod, unsigned int _pair_typeids[2], Scalar _rcutsq, const param_type& _params) //~ add radcontact, radprod, pair_typeIDs [RHEOINF]
+        : rsq(_rsq), radsum(_radcontact), radprod(_radprod), rcutsq(_rcutsq), A0(_params.A0), gamma(_params.gamma), D0(_params.D0), alpha(_params.alpha), 
 	r0(_params.r0), eta(_params.eta), f_contact(_params.f_contact), a1(_params.a1), a2(_params.a2), rcut(_params.rcut), scaled_D0(_params.scaled_D0), sys_kT(_params.sys_kT) // add radsum, scaled_D0, kT [RHEOINF]
         {
         typei = _pair_typeids[0]; //~ add typei [RHEOINF]
@@ -543,11 +543,13 @@ class EvaluatorPairDPDThermoDPDMorse
 		 // if using the lubrication approximation
 	         if (h_ij <= del_min)
 		    {
-	            asq = Scalar(1.178225) * eta * radsum * radsum / del_min; //3.0*pi/8.0=1.178225
+	            Scalar r_eff = Scalar(4.0) * radprod / radsum;
+	            asq = Scalar(1.178225) * eta * r_eff * r_eff / del_min; //3.0*pi/8.0=1.178225
 		    }
 	         else
 		    {
-	            asq = Scalar(1.178225) * eta * radsum * radsum / h_ij;
+	            Scalar r_eff = Scalar(4.0) * radprod / radsum;
+	            asq = Scalar(1.178225) * eta * r_eff * r_eff / h_ij;
 		    }
 
 		 // hydrodynamic squeezing) force
@@ -629,6 +631,7 @@ class EvaluatorPairDPDThermoDPDMorse
     protected:
     Scalar rsq;          //!< Stored rsq from the constructor
     Scalar radsum;       //!< Stored contact-distance from the constructor [RHEOINF]
+    Scalar radprod;      //!< Stored radii product from the constructor [RHEOINF]
     unsigned int pair_typeids;//!< Stored pair typeIDs from the constructor [RHEOINF]
     unsigned int typei;  //!<~ Stored typeID of particle i from the constructor [RHEOINF]
     unsigned int typej;  //!<~ Stored typeID of particle j from the constructor [RHEOINF]
